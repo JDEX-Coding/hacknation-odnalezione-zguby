@@ -1,7 +1,9 @@
 {
     "cSpell.words": [
         "amqp",
+        "dokploy",
         "hacknation",
+        "healthcheck",
         "qdrant",
         "rabbitmq",
         "traefik",
