@@ -182,9 +182,9 @@ Projekt używa Docker Compose do orkiestracji wszystkich serwisów. Plik `docker
 
 ### Serwisy Aplikacyjne
 
-| Serwis             | Container      | Port   | Dockerfile         |
-| ------------------ | -------------- | ------ | ------------------ |
-| **Gateway**        | a-gateway      | 8080   | service-a-gateway/ |
+| Serwis             | Container      | Port       | Dockerfile         |
+| ------------------ | -------------- | ---------- | ------------------ |
+| **Gateway**        | a-gateway      | 8080       | service-a-gateway/ |
 | **Qdrant Service** | qdrant-service | internal\* | qdrant-service/    |
 
 ### Infrastruktura
