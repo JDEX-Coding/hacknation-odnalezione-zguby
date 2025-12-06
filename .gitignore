@@ -144,6 +144,12 @@ ENV/
 env.bak/
 venv.bak/
 
+# Production and generated environment files (SECURITY)
+.env.production
+.env.production.generated
+PASSWORDS_*.txt
+*.secret
+
 # Docker
 docker-compose.override.yml
 .docker/
