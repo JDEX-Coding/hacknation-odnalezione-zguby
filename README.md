@@ -38,7 +38,8 @@ System zbudowany z 4 niezależnych serwisów + infrastruktura wspólna:
     - **Status:** _W planie_
 
 4. **Service D: Qdrant Vector DB (Go)**
-    - **Port:** 6333 (HTTP), 6334 (gRPC)
+    - **Port:** 6333 (HTTP only, exposed for console)
+    - **gRPC:** 6334 (internal only)
     - **Rola:** Baza danych wektorowych
     - **Odpowiedzialność:**
         - Przechowywanie embeddingów przedmiotów
@@ -51,7 +52,7 @@ System zbudowany z 4 niezależnych serwisów + infrastruktura wspólna:
 | -------- | ----------- | ---------------------------------------- |
 | RabbitMQ | 5672, 15672 | Message Broker (Topic Exchange + Queues) |
 | MinIO    | 9000, 9001  | S3-compatible object storage (zdjęcia)   |
-| Qdrant   | 6333, 6334  | Vector database dla semantic search      |
+| Qdrant   | 6333        | Vector database dla semantic search      |
 
 ---
 
@@ -75,7 +76,7 @@ graph TB
     end
 
     %% Qdrant Vector DB
-    subgraph VectorDB["📊 Qdrant Vector DB<br/>Port: 6333/6334"]
+    subgraph VectorDB["📊 Qdrant Vector DB<br/>Port: 6333 (HTTP only)<br/>gRPC: 6334 (internal)"]
         QdrantColl["Collection: lost_items<br/>(384-dim vectors)"]
     end
 
@@ -184,14 +185,14 @@ Projekt używa Docker Compose do orkiestracji wszystkich serwisów. Plik `docker
 | Serwis             | Container      | Port   | Dockerfile         |
 | ------------------ | -------------- | ------ | ------------------ |
 | **Gateway**        | a-gateway      | 8080   | service-a-gateway/ |
-| **Qdrant Service** | qdrant-service | 8080\* | qdrant-service/    |
+| **Qdrant Service** | qdrant-service | internal\* | qdrant-service/    |
 
 ### Infrastruktura
 
 | Serwis        | Image                    | Ports       | Rola                  |
 | ------------- | ------------------------ | ----------- | --------------------- |
 | **RabbitMQ**  | rabbitmq:3.12-management | 5672, 15672 | Message Broker        |
-| **Qdrant DB** | qdrant/qdrant:latest     | 6333, 6334  | Vector Database       |
+| **Qdrant DB** | qdrant/qdrant:latest     | 6333        | Vector Database       |
 | **MinIO**     | minio/minio:latest       | 9000, 9001  | S3-compatible Storage |
 
 ### Wolumeny
