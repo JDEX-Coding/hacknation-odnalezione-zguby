@@ -121,7 +121,7 @@ func (v *VisionService) AnalyzeImage(ctx context.Context, imageURL string) (*Ana
 						Type: "text",
 						Text: `Jesteś ekspertem od analizy zgubionego mienia. Przeanalizuj to zdjęcie i podaj:
 1. Szczegółowy opis przedmiotu (2-3 zdania w języku polskim)
-2. Kategorię (wybierz jedną z: Dokumenty, Elektronika, Biżuteria, Odzież, Portfele i torby, Klucze, Telefony, Zwierzęta, Inne)
+2. Kategorię (wybierz jedną z: Dokumenty, Elektronika, Biżuteria, Odzież, Portfele i torby, Klucze, Telefony, Inne)
 
 Odpowiedz TYLKO w formacie JSON:
 {

@@ -131,7 +131,10 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 	category := r.FormValue("category")
 	location := r.FormValue("location")
 	foundDateStr := r.FormValue("found_date")
-	contactInfo := r.FormValue("contact_info")
+	reportingDateStr := r.FormValue("reporting_date")
+	contactEmail := r.FormValue("contact_email")
+	contactPhone := r.FormValue("contact_phone")
+	reportingLocation := r.FormValue("reporting_location")
 	imageURL := r.FormValue("imageUrl") // URL from AI analysis (already in MinIO)
 
 	// Validate required fields
@@ -144,8 +147,21 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 	foundDate, err := time.Parse("2006-01-02", foundDateStr)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to parse found date")
-		http.Error(w, "Invalid date format", http.StatusBadRequest)
+		http.Error(w, "Invalid found date format", http.StatusBadRequest)
 		return
+	}
+
+	// Parse reporting date
+	var reportingDate time.Time
+	if reportingDateStr != "" {
+		reportingDate, err = time.Parse("2006-01-02", reportingDateStr)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to parse reporting date")
+			http.Error(w, "Invalid reporting date format", http.StatusBadRequest)
+			return
+		}
+	} else {
+		reportingDate = time.Now()
 	}
 
 	// If imageUrl is not provided from AI analysis, try to get it from form file upload
@@ -180,17 +196,20 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 
 	item := &models.LostItem{
-		ID:          itemID,
-		Title:       title,
-		Description: description,
-		Category:    category,
-		Location:    location,
-		FoundDate:   foundDate,
-		ImageURL:    imageURL,
-		Status:      "pending",
-		ContactInfo: contactInfo,
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		ID:                itemID,
+		Title:             title,
+		Description:       description,
+		Category:          category,
+		Location:          location,
+		FoundDate:         foundDate,
+		ReportingDate:     reportingDate,
+		ReportingLocation: reportingLocation,
+		ImageURL:          imageURL,
+		Status:            "pending",
+		ContactEmail:      contactEmail,
+		ContactPhone:      contactPhone,
+		CreatedAt:         now,
+		UpdatedAt:         now,
 	}
 
 	// Store in persistent DB
@@ -202,15 +221,18 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Publish event to RabbitMQ
 	event := models.ItemSubmittedEvent{
-		ID:          item.ID,
-		Title:       item.Title,
-		Description: item.Description,
-		Category:    item.Category,
-		Location:    item.Location,
-		FoundDate:   item.FoundDate,
-		ImageURL:    item.ImageURL,
-		ContactInfo: item.ContactInfo,
-		Timestamp:   now,
+		ID:                item.ID,
+		Title:             item.Title,
+		Description:       item.Description,
+		Category:          item.Category,
+		Location:          item.Location,
+		FoundDate:         item.FoundDate,
+		ReportingDate:     item.ReportingDate,
+		ReportingLocation: item.ReportingLocation,
+		ImageURL:          item.ImageURL,
+		ContactEmail:      item.ContactEmail,
+		ContactPhone:      item.ContactPhone,
+		Timestamp:         now,
 	}
 
 	if err := h.rabbitMQ.PublishItemSubmitted(r.Context(), event); err != nil {

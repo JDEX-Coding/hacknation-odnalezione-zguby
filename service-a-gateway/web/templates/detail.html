@@ -99,7 +99,7 @@
             </div>
 
             <!-- Contact Info -->
-            {{if .Item.ContactInfo}}
+            {{if or .Item.ContactEmail .Item.ContactPhone}}
             <div class="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-6 mb-8">
                 <h2 class="text-lg font-bold text-blue-900 mb-3 flex items-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -107,7 +107,20 @@
                     </svg>
                     Informacje kontaktowe
                 </h2>
-                <p class="text-blue-800 text-lg">{{.Item.ContactInfo}}</p>
+                <div class="space-y-2">
+                    {{if .Item.ContactEmail}}
+                    <p class="text-blue-800 text-lg flex items-center gap-2">
+                        <span class="font-semibold">Email:</span>
+                        <a href="mailto:{{.Item.ContactEmail}}" class="hover:underline">{{.Item.ContactEmail}}</a>
+                    </p>
+                    {{end}}
+                    {{if .Item.ContactPhone}}
+                    <p class="text-blue-800 text-lg flex items-center gap-2">
+                         <span class="font-semibold">Telefon:</span>
+                         {{.Item.ContactPhone}}
+                    </p>
+                    {{end}}
+                </div>
             </div>
             {{end}}
 

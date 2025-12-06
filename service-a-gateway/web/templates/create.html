@@ -178,14 +178,18 @@
                 </select>
             </div>
 
-            <!-- Location -->
-            <div>
-                <label
-                    for="location"
-                    class="block text-sm font-semibold text-gray-700 mb-2"
-                >
-                    Miejsce znalezienia <span class="text-red-500">*</span>
-                </label>
+            <!-- Location Section -->
+            <div class="space-y-6 bg-gray-50 p-6 rounded-lg border border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Miejsce i data znalezienia</h3>
+
+                <!-- Found Location -->
+                <div>
+                    <label
+                        for="location"
+                        class="block text-sm font-semibold text-gray-700 mb-2"
+                    >
+                        Miejsce znalezienia <span class="text-red-500">*</span>
+                    </label>
                 <input
                     type="text"
                     id="location"
@@ -217,23 +221,80 @@
                 />
             </div>
 
-            <!-- Contact Info -->
-            <div>
+             <!-- Reporting Date -->
+             <div>
                 <label
-                    for="contact_info"
+                    for="reporting_date"
                     class="block text-sm font-semibold text-gray-700 mb-2"
                 >
-                    Informacje kontaktowe
+                    Data zgłoszenia <span class="text-red-500">*</span>
+                </label>
+                <input
+                    type="date"
+                    id="reporting_date"
+                    name="reporting_date"
+                    required
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-100"
+                    readonly
+                />
+            </div>
+
+            <!-- Reporting Location -->
+            <div>
+                <label
+                    for="reporting_location"
+                    class="block text-sm font-semibold text-gray-700 mb-2"
+                >
+                    Miejsce zgłoszenia
                 </label>
                 <input
                     type="text"
-                    id="contact_info"
-                    name="contact_info"
-                    placeholder="np. biuro@urzad.pl, tel. 123-456-789"
+                    id="reporting_location"
+                    name="reporting_location"
+                    value="Bydgoskie Biuro Rzeczy Znalezionych, ul. Jezuicka 6a/2a"
+                    placeholder="np. Komisariat Policji nr 1"
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 />
+            </div>
+
+            </div>
+
+            <!-- Contact Info -->
+            <div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label
+                            for="contact_email"
+                            class="block text-sm font-semibold text-gray-700 mb-2"
+                        >
+                            Email
+                        </label>
+                        <input
+                            type="email"
+                            id="contact_email"
+                            name="contact_email"
+                            value="znalezione@um.bydgoszcz.pl"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        />
+                    </div>
+                    <div>
+                        <label
+                            for="contact_phone"
+                            class="block text-sm font-semibold text-gray-700 mb-2"
+                        >
+                            Telefon
+                        </label>
+                        <input
+                            type="text"
+                            id="contact_phone"
+                            name="contact_phone"
+                            value="(52) 58 58 087"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        />
+                    </div>
+                </div>
                 <p class="mt-1 text-sm text-gray-500">
-                    Opcjonalnie - dla osób szukających swoich rzeczy
+                    Dane kontaktowe do biura
                 </p>
             </div>
 
@@ -279,10 +340,17 @@
 </div>
 
 <script>
-    // Set today's date as max
-    document.getElementById("found_date").max = new Date()
-        .toISOString()
-        .split("T")[0];
+    // Set today's date
+    const today = new Date().toISOString().split("T")[0];
+
+    // Set max date for found_date
+    const foundDateInput = document.getElementById("found_date");
+    foundDateInput.max = today;
+    foundDateInput.value = today; // Auto-fill found date
+
+    // Auto-fill reporting date
+    const reportingDateInput = document.getElementById("reporting_date");
+    reportingDateInput.value = today;
 
     // Handle image upload preview
     function handleImageUpload(input) {
