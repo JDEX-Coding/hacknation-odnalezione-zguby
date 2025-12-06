@@ -41,7 +41,7 @@ services:
         restart: unless-stopped
         networks:
             - odnalezione-network
-            - traefik-public
+            - dokploy-network
 
     # ========================================
     # CLIP SERVICE - Przetwarzanie AI
@@ -103,7 +103,7 @@ services:
         restart: unless-stopped
         networks:
             - odnalezione-network
-            - traefik-public
+            - dokploy-network
 
     # ========================================
     # QDRANT DATABASE - Baza wektorowa
@@ -129,7 +129,7 @@ services:
         restart: unless-stopped
         networks:
             - odnalezione-network
-            - traefik-public
+            - dokploy-network
         deploy:
             resources:
                 limits:
@@ -167,7 +167,7 @@ services:
         restart: unless-stopped
         networks:
             - odnalezione-network
-            - traefik-public
+            - dokploy-network
 
     # ========================================
     # RABBITMQ INIT - Inicjalizacja kolejek
@@ -228,7 +228,7 @@ services:
         restart: unless-stopped
         networks:
             - odnalezione-network
-            - traefik-public
+            - dokploy-network
 
     # ========================================
     # MINIO INIT - Inicjalizacja bucketów
@@ -299,5 +299,5 @@ volumes:
 networks:
     odnalezione-network:
         driver: bridge
-    traefik-public:
+    dokploy-network:
         external: true
