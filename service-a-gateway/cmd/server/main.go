@@ -38,6 +38,7 @@ func main() {
 	log.Info().Msg("Initializing MinIO storage...")
 	minioStorage, err := storage.NewMinIOStorage(
 		config.MinIOEndpoint,
+		config.MinIOPublicEndpoint,
 		config.MinIOAccessKey,
 		config.MinIOSecretKey,
 		config.MinIOBucket,
@@ -138,51 +139,53 @@ func main() {
 }
 
 type Config struct {
-	Host              string
-	Port              string
-	TemplatesPath     string
-	StaticPath        string
-	RabbitMQURL       string
-	RabbitMQExchange  string
-	MinIOEndpoint     string
-	MinIOAccessKey    string
-	MinIOSecretKey    string
-	MinIOBucket       string
-	MinIOUseSSL       bool
-	VisionAPIKey      string
-	VisionAPIEndpoint string
-	VisionModel       string
-	DBHost            string
-	DBPort            string
-	DBUser            string
-	DBPassword        string
-	DBName            string
-	DBSSLMode         string
+	Host                string
+	Port                string
+	TemplatesPath       string
+	StaticPath          string
+	RabbitMQURL         string
+	RabbitMQExchange    string
+	MinIOEndpoint       string
+	MinIOPublicEndpoint string
+	MinIOAccessKey      string
+	MinIOSecretKey      string
+	MinIOBucket         string
+	MinIOUseSSL         bool
+	VisionAPIKey        string
+	VisionAPIEndpoint   string
+	VisionModel         string
+	DBHost              string
+	DBPort              string
+	DBUser              string
+	DBPassword          string
+	DBName              string
+	DBSSLMode           string
 }
 
 // loadConfig loads configuration from environment variables
 func loadConfig() *Config {
 	return &Config{
-		Host:              getEnv("GATEWAY_HOST", "0.0.0.0"),
-		Port:              getEnv("GATEWAY_PORT", "8080"),
-		TemplatesPath:     getEnv("TEMPLATES_PATH", "web/templates"),
-		StaticPath:        getEnv("STATIC_PATH", "web/static"),
-		RabbitMQURL:       getEnv("RABBITMQ_URL", "amqp://admin:admin123@localhost:5672/"),
-		RabbitMQExchange:  getEnv("RABBITMQ_EXCHANGE", "lost-found.events"),
-		MinIOEndpoint:     getEnv("MINIO_ENDPOINT", "localhost:9000"),
-		MinIOAccessKey:    getEnv("MINIO_ACCESS_KEY", "minioadmin"),
-		MinIOSecretKey:    getEnv("MINIO_SECRET_KEY", "minioadmin123"),
-		MinIOBucket:       getEnv("MINIO_BUCKET_NAME", "lost-items-images"),
-		MinIOUseSSL:       getEnv("MINIO_USE_SSL", "false") == "true",
-		VisionAPIKey:      getEnv("VISION_API_KEY", ""),
-		VisionAPIEndpoint: getEnv("VISION_API_ENDPOINT", "https://api.openai.com/v1"),
-		VisionModel:       getEnv("VISION_MODEL", "gpt-4o"),
-		DBHost:            getEnv("DB_HOST", "localhost"),
-		DBPort:            getEnv("DB_PORT", "5432"),
-		DBUser:            getEnv("DB_USER", "postgres"),
-		DBPassword:        getEnv("DB_PASSWORD", "postgres"),
-		DBName:            getEnv("DB_NAME", "postgres"),
-		DBSSLMode:         getEnv("DB_SSL_MODE", "disable"),
+		Host:                getEnv("GATEWAY_HOST", "0.0.0.0"),
+		Port:                getEnv("GATEWAY_PORT", "8080"),
+		TemplatesPath:       getEnv("TEMPLATES_PATH", "web/templates"),
+		StaticPath:          getEnv("STATIC_PATH", "web/static"),
+		RabbitMQURL:         getEnv("RABBITMQ_URL", "amqp://admin:admin123@localhost:5672/"),
+		RabbitMQExchange:    getEnv("RABBITMQ_EXCHANGE", "lost-found.events"),
+		MinIOEndpoint:       getEnv("MINIO_ENDPOINT", "localhost:9000"),
+		MinIOPublicEndpoint: getEnv("MINIO_PUBLIC_ENDPOINT", "localhost:9000"),
+		MinIOAccessKey:      getEnv("MINIO_ACCESS_KEY", "minioadmin"),
+		MinIOSecretKey:      getEnv("MINIO_SECRET_KEY", "minioadmin123"),
+		MinIOBucket:         getEnv("MINIO_BUCKET_NAME", "lost-items-images"),
+		MinIOUseSSL:         getEnv("MINIO_USE_SSL", "false") == "true",
+		VisionAPIKey:        getEnv("VISION_API_KEY", ""),
+		VisionAPIEndpoint:   getEnv("VISION_API_ENDPOINT", "https://api.openai.com/v1"),
+		VisionModel:         getEnv("VISION_MODEL", "gpt-4o"),
+		DBHost:              getEnv("DB_HOST", "localhost"),
+		DBPort:              getEnv("DB_PORT", "5432"),
+		DBUser:              getEnv("DB_USER", "postgres"),
+		DBPassword:          getEnv("DB_PASSWORD", "postgres"),
+		DBName:              getEnv("DB_NAME", "postgres"),
+		DBSSLMode:           getEnv("DB_SSL_MODE", "disable"),
 	}
 }
 

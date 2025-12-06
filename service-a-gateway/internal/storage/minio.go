@@ -15,14 +15,15 @@ import (
 
 // MinIOStorage handles image uploads to MinIO
 type MinIOStorage struct {
-	client     *minio.Client
-	bucketName string
-	endpoint   string
-	useSSL     bool
+	client         *minio.Client
+	bucketName     string
+	endpoint       string
+	publicEndpoint string
+	useSSL         bool
 }
 
 // NewMinIOStorage creates a new MinIO storage client
-func NewMinIOStorage(endpoint, accessKey, secretKey, bucketName string, useSSL bool) (*MinIOStorage, error) {
+func NewMinIOStorage(endpoint, publicEndpoint, accessKey, secretKey, bucketName string, useSSL bool) (*MinIOStorage, error) {
 	minioClient, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
 		Secure: useSSL,
@@ -31,11 +32,17 @@ func NewMinIOStorage(endpoint, accessKey, secretKey, bucketName string, useSSL b
 		return nil, fmt.Errorf("failed to create MinIO client: %w", err)
 	}
 
+	// If publicEndpoint is empty, fallback to endpoint
+	if publicEndpoint == "" {
+		publicEndpoint = endpoint
+	}
+
 	storage := &MinIOStorage{
-		client:     minioClient,
-		bucketName: bucketName,
-		endpoint:   endpoint,
-		useSSL:     useSSL,
+		client:         minioClient,
+		bucketName:     bucketName,
+		endpoint:       endpoint,
+		publicEndpoint: publicEndpoint,
+		useSSL:         useSSL,
 	}
 
 	// Verify bucket exists
@@ -53,6 +60,7 @@ func NewMinIOStorage(endpoint, accessKey, secretKey, bucketName string, useSSL b
 
 	log.Info().
 		Str("endpoint", endpoint).
+		Str("public_endpoint", publicEndpoint).
 		Str("bucket", bucketName).
 		Msg("MinIO storage initialized")
 
@@ -85,7 +93,7 @@ func (s *MinIOStorage) UploadImage(ctx context.Context, reader io.Reader, filena
 	if s.useSSL {
 		protocol = "https"
 	}
-	publicURL := fmt.Sprintf("%s://%s/%s/%s", protocol, s.endpoint, s.bucketName, uniqueFilename)
+	publicURL := fmt.Sprintf("%s://%s/%s/%s", protocol, s.publicEndpoint, s.bucketName, uniqueFilename)
 
 	log.Info().
 		Str("filename", filename).
@@ -123,7 +131,7 @@ func (s *MinIOStorage) GetImageURL(objectKey string) string {
 	if s.useSSL {
 		protocol = "https"
 	}
-	return fmt.Sprintf("%s://%s/%s/%s", protocol, s.endpoint, s.bucketName, objectKey)
+	return fmt.Sprintf("%s://%s/%s/%s", protocol, s.publicEndpoint, s.bucketName, objectKey)
 }
 
 // HealthCheck verifies the MinIO connection
