@@ -1,0 +1,253 @@
+{{define "content"}}
+<div class="max-w-4xl mx-auto">
+    <!-- Back Button -->
+    <div class="mb-6">
+        <a href="/browse" class="text-gray-600 hover:text-gray-900 inline-flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+            Powrót do listy
+        </a>
+    </div>
+
+    <!-- Main Card -->
+    <div class="bg-white rounded-xl shadow-2xl overflow-hidden">
+        <!-- Header with Image -->
+        <div class="relative h-96 bg-gradient-to-br from-gray-200 to-gray-300">
+            {{if .Item.ImageURL}}
+            <img src="{{.Item.ImageURL}}" alt="{{.Item.Title}}" class="w-full h-full object-contain bg-gray-900">
+            {{else}}
+            <div class="w-full h-full flex items-center justify-center">
+                <svg class="w-32 h-32 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+            </div>
+            {{end}}
+
+            <!-- Status Badge -->
+            <div class="absolute top-6 right-6">
+                {{if eq .Item.Status "pending"}}
+                <span class="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg shadow-lg">
+                    Oczekujące
+                </span>
+                {{else if eq .Item.Status "published"}}
+                <span class="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg shadow-lg flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                    </svg>
+                    Opublikowane
+                </span>
+                {{else}}
+                <span class="px-4 py-2 bg-gray-500 text-white font-semibold rounded-lg shadow-lg">
+                    Archiwalne
+                </span>
+                {{end}}
+            </div>
+
+            <!-- ID Badge -->
+            <div class="absolute bottom-6 left-6">
+                <span class="px-3 py-1 bg-black bg-opacity-70 text-white text-sm font-mono rounded">
+                    ID: {{.Item.ID}}
+                </span>
+            </div>
+        </div>
+
+        <!-- Content -->
+        <div class="p-8">
+            <!-- Title -->
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">{{.Item.Title}}</h1>
+
+            <!-- Metadata -->
+            <div class="flex flex-wrap gap-4 mb-8">
+                <!-- Category -->
+                <div class="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                    </svg>
+                    <span class="font-semibold text-blue-900">{{.Item.Category}}</span>
+                </div>
+
+                <!-- Location -->
+                <div class="flex items-center gap-2 px-4 py-2 bg-green-50 rounded-lg">
+                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span class="font-medium text-green-900">{{.Item.Location}}</span>
+                </div>
+
+                <!-- Found Date -->
+                <div class="flex items-center gap-2 px-4 py-2 bg-purple-50 rounded-lg">
+                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <span class="font-medium text-purple-900">{{.Item.FoundDate.Format "02 stycznia 2006"}}</span>
+                </div>
+            </div>
+
+            <!-- Description Section -->
+            <div class="mb-8">
+                <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Opis przedmiotu
+                </h2>
+                <div class="prose max-w-none">
+                    <p class="text-gray-700 text-lg leading-relaxed whitespace-pre-wrap">{{.Item.Description}}</p>
+                </div>
+            </div>
+
+            <!-- Contact Info -->
+            {{if .Item.ContactInfo}}
+            <div class="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-6 mb-8">
+                <h2 class="text-lg font-bold text-blue-900 mb-3 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                    Informacje kontaktowe
+                </h2>
+                <p class="text-blue-800 text-lg">{{.Item.ContactInfo}}</p>
+            </div>
+            {{end}}
+
+            <!-- Timestamps -->
+            <div class="border-t border-gray-200 pt-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-gray-600">
+                    <div>
+                        <span class="font-semibold text-gray-700">Dodano:</span>
+                        <p class="mt-1">{{.Item.CreatedAt.Format "02.01.2006 15:04"}}</p>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-gray-700">Ostatnia aktualizacja:</span>
+                        <p class="mt-1">{{.Item.UpdatedAt.Format "02.01.2006 15:04"}}</p>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-gray-700">Status:</span>
+                        <p class="mt-1">
+                            {{if eq .Item.Status "pending"}}
+                            Oczekuje na przetworzenie przez system AI
+                            {{else if eq .Item.Status "published"}}
+                            Opublikowane na dane.gov.pl
+                            {{else}}
+                            Zarchiwizowane
+                            {{end}}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="mt-8 pt-6 border-t border-gray-200 flex flex-wrap gap-4">
+                <a href="/browse" class="flex-1 min-w-[200px] bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition-colors text-center font-semibold">
+                    ← Powrót do listy
+                </a>
+
+                {{if .Item.ImageURL}}
+                <a href="{{.Item.ImageURL}}" target="_blank" class="flex-1 min-w-[200px] bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors text-center font-semibold inline-flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                    </svg>
+                    Pobierz zdjęcie
+                </a>
+                {{end}}
+            </div>
+        </div>
+    </div>
+
+    <!-- Processing Timeline -->
+    <div class="mt-8 bg-white rounded-xl shadow-lg p-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">Proces przetwarzania</h2>
+
+        <div class="space-y-6">
+            <!-- Step 1: Submitted -->
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <h3 class="font-semibold text-gray-900">Zgłoszenie utworzone</h3>
+                    <p class="text-sm text-gray-600">Formularz został wypełniony i zgłoszenie dodane do systemu</p>
+                    <p class="text-xs text-gray-500 mt-1">{{.Item.CreatedAt.Format "02.01.2006 15:04:05"}}</p>
+                </div>
+            </div>
+
+            <!-- Step 2: AI Processing -->
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 w-10 h-10 {{if eq .Item.Status "pending"}}bg-yellow-500{{else}}bg-green-500{{end}} rounded-full flex items-center justify-center">
+                    {{if eq .Item.Status "pending"}}
+                    <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    {{else}}
+                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    {{end}}
+                </div>
+                <div class="flex-1">
+                    <h3 class="font-semibold text-gray-900">Przetwarzanie AI</h3>
+                    <p class="text-sm text-gray-600">Generowanie embeddingów wektorowych dla wyszukiwania semantycznego</p>
+                    {{if eq .Item.Status "pending"}}
+                    <p class="text-xs text-yellow-600 mt-1">W trakcie przetwarzania...</p>
+                    {{else}}
+                    <p class="text-xs text-gray-500 mt-1">Zakończono</p>
+                    {{end}}
+                </div>
+            </div>
+
+            <!-- Step 3: Publication -->
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 w-10 h-10 {{if eq .Item.Status "published"}}bg-green-500{{else}}bg-gray-300{{end}} rounded-full flex items-center justify-center">
+                    {{if eq .Item.Status "published"}}
+                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    {{else}}
+                    <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    {{end}}
+                </div>
+                <div class="flex-1">
+                    <h3 class="font-semibold text-gray-900">Publikacja na dane.gov.pl</h3>
+                    <p class="text-sm text-gray-600">Automatyczne przesłanie danych w formacie JSON-LD do portalu dane.gov.pl</p>
+                    {{if eq .Item.Status "published"}}
+                    <p class="text-xs text-green-600 mt-1">Opublikowano</p>
+                    {{else}}
+                    <p class="text-xs text-gray-500 mt-1">Oczekuje na przetworzenie...</p>
+                    {{end}}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Info -->
+    <div class="mt-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl shadow-lg p-8 border border-blue-100">
+        <div class="flex items-start gap-4">
+            <div class="flex-shrink-0">
+                <svg class="w-12 h-12 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="text-lg font-bold text-gray-900 mb-2">Co dalej?</h3>
+                <ul class="space-y-2 text-gray-700">
+                    <li class="flex items-start gap-2">
+                        <span class="text-blue-600 font-bold">•</span>
+                        <span>System AI automatycznie przetwarza zgłoszenie i tworzy wektory dla wyszukiwania semantycznego</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-blue-600 font-bold">•</span>
+                        <span>Po zakończeniu przetwarzania, dane zostaną automatycznie opublikowane na portalu dane.gov.pl</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-blue-600 font-bold">•</span>
+                        <span>Właściciel będzie mógł odnaleźć swój przedmiot używając wyszukiwania semantycznego</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
