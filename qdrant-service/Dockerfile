@@ -27,8 +27,4 @@ USER appuser
 
 EXPOSE 8080
 
-ENV RABBITMQ_URL="amqp://guest:guest@zguby-rabbitmq:5672/" \
-    QDRANT_ADDR="zguby-qdrant:6334" \
-    COLLECTION_NAME="lost_items"
-
 CMD ["./qdrant-service"]

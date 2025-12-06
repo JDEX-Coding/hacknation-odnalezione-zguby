@@ -186,8 +186,6 @@ func showStats(rabbitMQ *RabbitMQHandler, qdrant *QdrantHandler) {
 			}
 			log.Printf("  %s: %d messages, %d consumers", queue, msgCount, consumerCount)
 		}
-
-		log.Println("=============================\n")
 	}
 }
 
