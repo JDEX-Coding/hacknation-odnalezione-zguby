@@ -367,7 +367,7 @@ func (h *RabbitMQHandler) PublishNotification(ctx context.Context, notification 
 
 // PublishItemVectorized publishes an item.vectorized event to the exchange
 // This represents an item that has been enriched with vector embeddings
-func (h *RabbitMQHandler) PublishItemVectorized(ctx context.Context, itemID string, vectorID uint64, payload map[string]interface{}) error {
+func (h *RabbitMQHandler) PublishItemVectorized(ctx context.Context, itemID string, vectorID string, payload map[string]interface{}) error {
 	data := map[string]interface{}{
 		"item_id":   itemID,
 		"vector_id": vectorID,
@@ -375,7 +375,7 @@ func (h *RabbitMQHandler) PublishItemVectorized(ctx context.Context, itemID stri
 	}
 
 	message := Message{
-		ID:        fmt.Sprintf("vec_%s_%d", itemID, time.Now().Unix()),
+		ID:        fmt.Sprintf("vec_%s_%s", itemID, vectorID),
 		Type:      MessageTypeNewItem,
 		Timestamp: time.Now(),
 		Data:      data,
