@@ -20,9 +20,24 @@ type RabbitMQPublisher struct {
 
 // NewRabbitMQPublisher creates a new RabbitMQ publisher
 func NewRabbitMQPublisher(url, exchangeName string) (*RabbitMQPublisher, error) {
-	conn, err := amqp.Dial(url)
+	// Retry configuration
+	maxRetries := 30
+	retryDelay := 2 * time.Second
+
+	var conn *amqp.Connection
+	var err error
+
+	for i := 0; i < maxRetries; i++ {
+		conn, err = amqp.Dial(url)
+		if err == nil {
+			break
+		}
+		log.Warn().Err(err).Msgf("Failed to connect to RabbitMQ (attempt %d/%d), retrying in %s...", i+1, maxRetries, retryDelay)
+		time.Sleep(retryDelay)
+	}
+
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to RabbitMQ: %w", err)
+		return nil, fmt.Errorf("failed to connect to RabbitMQ after %d attempts: %w", maxRetries, err)
 	}
 
 	channel, err := conn.Channel()

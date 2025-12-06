@@ -119,7 +119,7 @@ func consumeVectorIndexing(rabbitMQ *RabbitMQHandler, qdrant *QdrantHandler) {
 			return fmt.Errorf("failed to upsert to Qdrant: %w", err)
 		}
 
-		log.Printf("Successfully indexed item in Qdrant: %s (vector ID: %d)", itemID, vectorID)
+		log.Printf("Successfully indexed item in Qdrant: %s (vector ID: %s)", itemID, vectorID)
 
 		// Publish item.vectorized event
 		payloadMap := map[string]interface{}{

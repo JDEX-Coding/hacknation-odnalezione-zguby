@@ -223,12 +223,14 @@ make build
 
 ```bash
 docker build -t qdrant-service .
-docker run -p 8080:8080 \
+docker run \
   -e RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672/ \
   -e QDRANT_ADDR=qdrant-db:6334 \
   -e COLLECTION_NAME=lost_items \
   qdrant-service
 ```
+
+**Note:** Qdrant Service komunikuje wewnętrznie z Qdrant DB poprzez gRPC (port 6334). Nie eksponuje portów HTTP.
 
 ## ⚙️ Configuration
 

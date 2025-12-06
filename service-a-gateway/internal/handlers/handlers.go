@@ -26,7 +26,7 @@ type Handler struct {
 	storage       *storage.MinIOStorage
 	rabbitMQ      *services.RabbitMQPublisher
 	visionService *services.VisionService
-	items         map[string]*models.LostItem // TODO: In-memory store (replace with DB later)
+	items         *storage.PostgresStorage // Persistent Postgres storage
 }
 
 // NewHandler creates a new handler instance
@@ -35,6 +35,7 @@ func NewHandler(
 	storage *storage.MinIOStorage,
 	rabbitMQ *services.RabbitMQPublisher,
 	visionService *services.VisionService,
+	itemStorage *storage.PostgresStorage,
 ) (*Handler, error) {
 	// Parse base template
 	basePath := filepath.Join(templatesPath, "base.html")
@@ -69,7 +70,7 @@ func NewHandler(
 		storage:       storage,
 		rabbitMQ:      rabbitMQ,
 		visionService: visionService,
-		items:         make(map[string]*models.LostItem),
+		items:         itemStorage,
 	}, nil
 }
 
@@ -192,8 +193,12 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 		UpdatedAt:   now,
 	}
 
-	// Store in memory (replace with DB later)
-	h.items[itemID] = item
+	// Store in persistent DB
+	if err := h.items.Save(item); err != nil {
+		log.Error().Err(err).Msg("Failed to save item to DB")
+		http.Error(w, "Failed to save item", http.StatusInternalServerError)
+		return
+	}
 
 	// Publish event to RabbitMQ
 	event := models.ItemSubmittedEvent{
@@ -234,7 +239,15 @@ func (h *Handler) BrowseHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Filter items
 	filteredItems := make([]*models.LostItem, 0)
-	for _, item := range h.items {
+
+	allItems, err := h.items.List()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to list items")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	for _, item := range allItems {
 		// Filter by search query
 		if query != "" && !strings.Contains(strings.ToLower(item.Title), query) &&
 			!strings.Contains(strings.ToLower(item.Description), query) &&
@@ -290,7 +303,7 @@ func (h *Handler) ItemDetailHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	itemID := vars["id"]
 
-	item, exists := h.items[itemID]
+	item, exists := h.items.Get(itemID)
 	if !exists {
 		http.Error(w, "Item not found", http.StatusNotFound)
 		return
