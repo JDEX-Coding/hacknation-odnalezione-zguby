@@ -275,9 +275,9 @@ See LICENSE file in the root directory.
 ✅ Emitting events continuously...
 Press Enter to stop
 
-2024-12-06 10:37:00 - Emitted item.submitted
-2024-12-06 10:37:03 - Emitted item.submitted
-2024-12-06 10:37:06 - Emitted item.vectorized
+2025-12-06 10:37:00 - Emitted item.submitted
+2025-12-06 10:37:03 - Emitted item.submitted
+2025-12-06 10:37:06 - Emitted item.vectorized
 ...
 Enter to stop:
 ```

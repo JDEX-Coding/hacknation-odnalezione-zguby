@@ -197,7 +197,7 @@ Struktura folderów:
 ```
 lost-items-images/
 └── uploads/
-    └── 2024-12-06/
+    └── 2025-12-06/
         ├── 550e8400-e29b-41d4-a716-446655440000.jpg
         └── ...
 ```
@@ -205,7 +205,7 @@ lost-items-images/
 Public URL format:
 
 ```
-http://localhost:9000/lost-items-images/uploads/2024-12-06/550e8400-e29b-41d4-a716-446655440000.jpg
+http://localhost:9000/lost-items-images/uploads/2025-12-06/550e8400-e29b-41d4-a716-446655440000.jpg
 ```
 
 ### Vision API (GPT-4o)
@@ -627,10 +627,10 @@ Service A publishes `item.submitted` events:
     "description": "Black leather wallet...",
     "category": "Portfele i torby",
     "location": "Rynek Główny, Kraków",
-    "found_date": "2024-01-15T00:00:00Z",
+    "found_date": "2025-01-15T00:00:00Z",
     "image_url": "http://localhost:9000/lost-items-images/uploads/...",
     "contact_info": "biuro@urzad.pl",
-    "timestamp": "2024-01-15T10:30:00Z"
+    "timestamp": "2025-01-15T10:30:00Z"
 }
 ```
 

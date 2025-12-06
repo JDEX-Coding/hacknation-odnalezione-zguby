@@ -454,6 +454,9 @@
             return;
         }
 
+        const escapedTitle = (data.title || "")
+            .replace(/'/g, "\\'")
+            .replace(/"/g, "&quot;");
         const escapedDescription = data.description
             .replace(/'/g, "\\'")
             .replace(/"/g, "&quot;");
@@ -467,8 +470,17 @@
                         </svg>
                     </div>
                     <div class="flex-1">
-                        <h3 class="font-semibold text-purple-900 mb-2">✨ Sugestia AI</h3>
-                        <p class="text-gray-800 leading-relaxed mb-3">${data.description}</p>
+                        <h3 class="font-semibold text-purple-900 mb-3">✨ Sugestia AI</h3>
+                        <div class="space-y-2 mb-3">
+                            <div>
+                                <span class="text-sm font-medium text-gray-600">Tytuł:</span>
+                                <p class="text-gray-900 font-medium">${data.title}</p>
+                            </div>
+                            <div>
+                                <span class="text-sm font-medium text-gray-600">Opis:</span>
+                                <p class="text-gray-800 leading-relaxed">${data.description}</p>
+                            </div>
+                        </div>
                         <div class="flex flex-wrap items-center gap-3 text-sm">
                             <div class="flex items-center gap-2">
                                 <span class="font-medium text-gray-700">Kategoria:</span>
@@ -483,7 +495,7 @@
                 </div>
                 <button
                     type="button"
-                    onclick="applyAISuggestion('${escapedDescription}', '${data.category}')"
+                    onclick="applyAISuggestion('${escapedTitle}', '${escapedDescription}', '${data.category}')"
                     class="w-full mt-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
                 >
                     ✓ Użyj tej sugestii
@@ -496,7 +508,8 @@
     }
 
     // Apply AI suggestion to form
-    function applyAISuggestion(description, category) {
+    function applyAISuggestion(title, description, category) {
+        document.getElementById("title").value = title;
         document.getElementById("description").value = description;
         document.getElementById("category").value = category;
 
@@ -510,9 +523,9 @@
             </div>
         `;
 
-        // Scroll to description field
+        // Scroll to title field
         document
-            .getElementById("description")
+            .getElementById("title")
             .scrollIntoView({ behavior: "smooth", block: "center" });
 
         // Restore original after 2 seconds

@@ -48,6 +48,7 @@ type AnalyzeImageRequest struct {
 
 // AnalyzeImageResponse represents the response from image analysis
 type AnalyzeImageResponse struct {
+	Title       string `json:"title"`
 	Description string `json:"description"`
 	Category    string `json:"category"`
 	Confidence  string `json:"confidence"`
@@ -120,11 +121,13 @@ func (v *VisionService) AnalyzeImage(ctx context.Context, imageURL string) (*Ana
 					{
 						Type: "text",
 						Text: `Jesteś ekspertem od analizy zgubionego mienia. Przeanalizuj to zdjęcie i podaj:
-1. Szczegółowy opis przedmiotu (2-3 zdania w języku polskim)
-2. Kategorię (wybierz jedną z: Dokumenty, Elektronika, Biżuteria, Odzież, Portfele i torby, Klucze, Telefony, Inne)
+1. Krótki tytuł zgłoszenia (4-8 słów, np. "Znaleziony czarny portfel skórzany")
+2. Szczegółowy opis przedmiotu (2-3 zdania w języku polskim)
+3. Kategorię (wybierz jedną z: Dokumenty, Elektronika, Biżuteria, Odzież, Portfele i torby, Klucze, Telefony, Inne)
 
 Odpowiedz TYLKO w formacie JSON:
 {
+  "title": "krótki tytuł zgłoszenia",
   "description": "szczegółowy opis po polsku",
   "category": "nazwa kategorii",
   "confidence": "high/medium/low"
@@ -233,6 +236,7 @@ Odpowiedz TYLKO w formacie JSON:
 				Msg("Failed to parse AI response as JSON, using raw content")
 
 			analysisResp = AnalyzeImageResponse{
+				Title:       "Znaleziony przedmiot",
 				Description: content,
 				Category:    "Inne",
 				Confidence:  "medium",
@@ -241,6 +245,7 @@ Odpowiedz TYLKO w formacie JSON:
 	}
 
 	log.Info().
+		Str("title", analysisResp.Title).
 		Str("description", analysisResp.Description).
 		Str("category", analysisResp.Category).
 		Str("confidence", analysisResp.Confidence).

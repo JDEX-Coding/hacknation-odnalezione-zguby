@@ -179,7 +179,7 @@ curl -X POST http://localhost:6333/collections/lost_items/points/scroll \
 docker exec -it odnalezione-minio mc ls myminio/lost-items-images
 
 # Download file
-docker exec -it odnalezione-minio mc cat myminio/lost-items-images/uploads/2024-12-06/uuid.jpg > file.jpg
+docker exec -it odnalezione-minio mc cat myminio/lost-items-images/uploads/2025-12-06/uuid.jpg > file.jpg
 ```
 
 ## 🧪 Integration Tests

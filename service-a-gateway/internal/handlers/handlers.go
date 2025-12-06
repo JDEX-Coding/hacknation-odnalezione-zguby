@@ -393,6 +393,7 @@ func (h *Handler) AnalyzeImageHandler(w http.ResponseWriter, r *http.Request) {
 		log.Error().Err(err).Msg("Failed to analyze image")
 		// Return a default response instead of failing
 		analysis = &services.AnalyzeImageResponse{
+			Title:       "Znaleziony przedmiot",
 			Description: "Nie udało się automatycznie opisać przedmiotu. Proszę wpisać opis ręcznie.",
 			Category:    "Inne",
 			Confidence:  "low",
@@ -411,6 +412,7 @@ func (h *Handler) AnalyzeImageHandler(w http.ResponseWriter, r *http.Request) {
 	// Return JSON response with analysis and image URL
 	w.Header().Set("Content-Type", "application/json")
 	response := map[string]interface{}{
+		"title":       analysis.Title,
 		"description": analysis.Description,
 		"category":    analysis.Category,
 		"confidence":  analysis.Confidence,

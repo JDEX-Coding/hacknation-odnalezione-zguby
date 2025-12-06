@@ -122,7 +122,7 @@ payload := LostItemPayload{
     Category:    "Portfele i torby",
     Location:    "Warszawa, Rynek Starego Miasta",
     DateLost:    time.Now(),
-    ImageURL:    "http://minio:9000/lost-items-images/uploads/2024-12-06/uuid.jpg",
+    ImageURL:    "http://minio:9000/lost-items-images/uploads/2025-12-06/uuid.jpg",
     ContactInfo: "biuro@urzad.pl",
 }
 
@@ -310,12 +310,12 @@ type LostItemPayload struct {
 The service prints statistics every 30 seconds:
 
 ```
-📊 Service Statistics - 2024-12-06 10:37:00
+📊 Service Statistics - 2025-12-06 10:37:00
 ═════════════════════════════════════════════════════
 📦 Qdrant Collection: lost_items
    ├─ Vectors: 1,245
    ├─ Size: 2.3 MB
-   └─ Last updated: 2024-12-06 10:35:42
+   └─ Last updated: 2025-12-06 10:35:42
 
 🐇 RabbitMQ Queues:
    ├─ vector_indexing (4 messages, 1 consumer)

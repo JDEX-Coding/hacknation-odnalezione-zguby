@@ -264,16 +264,49 @@ func (h *RabbitMQHandler) ConsumeMessages(queueName QueueName, consumerTag strin
 }
 
 // ProcessMessages processes messages from a channel with a handler function
+// Supports both wrapped Message format and direct ItemSubmittedEvent format
 func (h *RabbitMQHandler) ProcessMessages(msgs <-chan amqp.Delivery, handler func(Message) error) {
 	for d := range msgs {
 		var msg Message
+
+		// Try to unmarshal as Message wrapper first
 		if err := json.Unmarshal(d.Body, &msg); err != nil {
-			log.Printf("Error unmarshaling message: %v", err)
+			log.Printf("Error unmarshaling as Message wrapper: %v", err)
 			d.Nack(false, false) // negative acknowledge, don't requeue
 			continue
 		}
 
-		log.Printf("Received message: Type=%s, ID=%s", msg.Type, msg.ID)
+		// If Data field is empty, try to parse the body as direct event data
+		if msg.Data == nil || len(msg.Data) == 0 {
+			var directData map[string]interface{}
+			if err := json.Unmarshal(d.Body, &directData); err != nil {
+				log.Printf("Error unmarshaling as direct event data: %v", err)
+				d.Nack(false, false)
+				continue
+			}
+
+			// Use the direct data as Message.Data
+			msg.Data = directData
+
+			// Extract ID if available
+			if id, ok := directData["id"].(string); ok {
+				msg.ID = id
+			}
+
+			// Set a default type if not present
+			if msg.Type == "" {
+				msg.Type = MessageTypeNewItem
+			}
+
+			// Set timestamp if not present
+			if msg.Timestamp.IsZero() {
+				msg.Timestamp = time.Now()
+			}
+
+			log.Printf("Parsed direct event format: ID=%s", msg.ID)
+		} else {
+			log.Printf("Received message: Type=%s, ID=%s", msg.Type, msg.ID)
+		}
 
 		if err := handler(msg); err != nil {
 			log.Printf("Error processing message: %v", err)
