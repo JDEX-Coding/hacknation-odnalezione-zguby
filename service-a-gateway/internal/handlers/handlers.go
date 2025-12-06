@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"math"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -37,9 +38,81 @@ func NewHandler(
 	visionService *services.VisionService,
 	itemStorage *storage.PostgresStorage,
 ) (*Handler, error) {
+	// Function map for templates
+	funcMap := template.FuncMap{
+		"timeRemaining": func(foundDate time.Time, category string) string {
+			// Documents have special procedure (police/issuer), no 2-year ownership transfer
+			if strings.ToLower(category) == "dokumenty" {
+				return "Procedura specjalna"
+			}
+
+			// Legislation: 2 years storage for unknown owner (Art. 187 KC)
+			expirationDate := foundDate.AddDate(2, 0, 0)
+			remaining := time.Until(expirationDate)
+
+			if remaining <= 0 {
+				return "Czas minął"
+			}
+
+			if remaining.Hours() < 24 {
+				return "Mniej niż 24h"
+			}
+
+			days := int(remaining.Hours() / 24)
+			if days < 30 {
+				return fmt.Sprintf("%d dni", days)
+			}
+
+			months := int(math.Floor(remaining.Hours() / 24 / 30))
+			if months < 12 {
+				return fmt.Sprintf("%d mies.", months)
+			}
+
+			years := int(math.Floor(remaining.Hours() / 24 / 365))
+			monthsRemaining := months % 12
+			if monthsRemaining > 0 {
+				return fmt.Sprintf("%d rok %d mies.", years, monthsRemaining)
+			}
+			return fmt.Sprintf("%d rok", years)
+		},
+		"isExpiringSoon": func(foundDate time.Time, category string) bool {
+			if strings.ToLower(category) == "dokumenty" {
+				return false // Don't show red warning for documents, just special status
+			}
+			expirationDate := foundDate.AddDate(2, 0, 0)
+			remaining := time.Until(expirationDate)
+			// Warning if less than 3 months
+			return remaining.Hours() < 24*90
+		},
+		"isDocuments": func(category string) bool {
+			return strings.ToLower(category) == "dokumenty"
+		},
+		"expirationDate": func(foundDate time.Time, category string) string {
+			if strings.ToLower(category) == "dokumenty" {
+				return "-"
+			}
+			// Legislation: 2 years storage
+			exp := foundDate.AddDate(2, 0, 0)
+			return exp.Format("02.01.2006")
+		},
+		"daysRemaining": func(foundDate time.Time, category string) int {
+			if strings.ToLower(category) == "dokumenty" {
+				return 0
+			}
+			exp := foundDate.AddDate(2, 0, 0)
+			remaining := time.Until(exp)
+			if remaining <= 0 {
+				return 0
+			}
+			// Round up to nearest day
+			days := int(math.Ceil(remaining.Hours() / 24))
+			return days
+		},
+	}
+
 	// Parse base template
 	basePath := filepath.Join(templatesPath, "base.html")
-	baseTmpl, err := template.ParseFiles(basePath)
+	baseTmpl, err := template.New("base.html").Funcs(funcMap).ParseFiles(basePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse base template: %w", err)
 	}

@@ -1,0 +1,39 @@
+# Lightweight Dockerfile for local development/MVP
+# Uses CPU-only PyTorch for smaller image size and faster builds
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install minimal system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements-dev.txt .
+
+# Install Python dependencies (CPU-only)
+RUN pip install --no-cache-dir -r requirements-dev.txt
+
+# Copy application code
+COPY *.py .
+
+# Create cache and temp directories
+RUN mkdir -p /app/.cache/huggingface /tmp/clip-images
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV TRANSFORMERS_CACHE=/app/.cache/huggingface
+ENV HF_HOME=/app/.cache/huggingface
+ENV TORCH_NUM_THREADS=2
+ENV OMP_NUM_THREADS=2
+
+# Optional: Pre-download model to speed up first run
+# RUN python -c "from transformers import CLIPProcessor, CLIPModel; CLIPProcessor.from_pretrained('openai/clip-vit-base-patch32'); CLIPModel.from_pretrained('openai/clip-vit-base-patch32')"
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python -c "import sys; sys.exit(0)"
+
+CMD ["python", "main.py"]

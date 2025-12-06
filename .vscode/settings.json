@@ -1,3 +1,10 @@
 {
-    "cSpell.words": ["amqp", "hacknation", "qdrant", "rabbitmq"]
+    "cSpell.words": [
+        "amqp",
+        "hacknation",
+        "qdrant",
+        "rabbitmq",
+        "traefik",
+        "websecure"
+    ]
 }

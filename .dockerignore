@@ -1,0 +1,89 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!README.md
+LICENSE
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Environment
+.env*
+*.env
+
+# Development
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Testing
+*_test.go
+test_*.py
+*_test.py
+tests/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build artifacts
+bin/
+build/
+dist/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Logs
+*.log
+logs/
+
+# OS specific
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Data directories (nie kopiuj lokalnych danych)
+qdrant_storage/
+rabbitmq_data/
+minio_data/
+postgres_data/
+
+# Node modules (jeśli są)
+node_modules/
+npm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+ENV/
+env/
+
+# Go
+*.exe
+*.exe~
+*.test
+*.out
+vendor/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.cache
