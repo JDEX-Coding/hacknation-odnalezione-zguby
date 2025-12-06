@@ -29,11 +29,11 @@ services:
             context: ./qdrant-service
             dockerfile: Dockerfile
         ports:
-            - "8081:8080"
+            - "8081:8081"
         environment:
             - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672/
             - QDRANT_ADDR=qdrant-db:6334
-            - COLLECTION_NAME=lost_items
+            - COLLECTION_NAME=lost_items_512
         depends_on:
             qdrant-db:
                 condition: service_started
