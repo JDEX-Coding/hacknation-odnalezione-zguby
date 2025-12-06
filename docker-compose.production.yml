@@ -86,15 +86,6 @@ services:
             - RABBITMQ_URL=amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672/
             - QDRANT_ADDR=qdrant-db:6334
             - COLLECTION_NAME=${QDRANT_COLLECTION_NAME}
-        labels:
-            - "traefik.enable=true"
-            - "traefik.http.routers.qdrant-service.rule=Host(`${DOMAIN}`) && PathPrefix(`/api/qdrant`)"
-            - "traefik.http.routers.qdrant-service.entrypoints=websecure"
-            - "traefik.http.routers.qdrant-service.tls=true"
-            - "traefik.http.routers.qdrant-service.tls.certresolver=letsencrypt"
-            - "traefik.http.services.qdrant-service.loadbalancer.server.port=8080"
-            - "traefik.http.middlewares.qdrant-strip.stripprefix.prefixes=/api/qdrant"
-            - "traefik.http.routers.qdrant-service.middlewares=qdrant-strip"
         depends_on:
             qdrant-db:
                 condition: service_started
@@ -116,16 +107,6 @@ services:
         environment:
             - QDRANT__SERVICE__HTTP_PORT=6333
             - QDRANT__SERVICE__GRPC_PORT=6334
-        labels:
-            - "traefik.enable=true"
-            - "traefik.http.routers.qdrant.rule=Host(`qdrant.${DOMAIN}`)"
-            - "traefik.http.routers.qdrant.entrypoints=websecure"
-            - "traefik.http.routers.qdrant.tls=true"
-            - "traefik.http.routers.qdrant.tls.certresolver=letsencrypt"
-            - "traefik.http.services.qdrant.loadbalancer.server.port=6333"
-            # Opcjonalna autoryzacja Basic Auth
-            - "traefik.http.routers.qdrant.middlewares=qdrant-auth"
-            - "traefik.http.middlewares.qdrant-auth.basicauth.users=${QDRANT_BASIC_AUTH}"
         restart: unless-stopped
         networks:
             - odnalezione-network
@@ -148,17 +129,6 @@ services:
         volumes:
             - rabbitmq_data:/var/lib/rabbitmq
             - ./rabbitmq-init.sh:/docker-entrypoint-initdb.d/init.sh:ro
-        labels:
-            - "traefik.enable=true"
-            # Management UI
-            - "traefik.http.routers.rabbitmq.rule=Host(`rabbitmq.${DOMAIN}`)"
-            - "traefik.http.routers.rabbitmq.entrypoints=websecure"
-            - "traefik.http.routers.rabbitmq.tls=true"
-            - "traefik.http.routers.rabbitmq.tls.certresolver=letsencrypt"
-            - "traefik.http.services.rabbitmq.loadbalancer.server.port=15672"
-            # Basic Auth protection
-            - "traefik.http.routers.rabbitmq.middlewares=rabbitmq-auth"
-            - "traefik.http.middlewares.rabbitmq-auth.basicauth.users=${RABBITMQ_BASIC_AUTH}"
         healthcheck:
             test: rabbitmq-diagnostics -q ping
             interval: 10s
