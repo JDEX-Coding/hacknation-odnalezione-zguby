@@ -1,0 +1,182 @@
+{{define "content"}}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Przeglądaj Zguby</h1>
+            <p class="text-gray-600">
+                Lista wszystkich zgłoszonych rzeczy znalezionych
+            </p>
+        </div>
+        <a href="/create" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Dodaj Nową
+        </a>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-xl shadow-lg p-6">
+        <form id="filter-form" class="flex flex-wrap items-center gap-4">
+            <div class="flex-1 min-w-[300px]">
+                <div class="relative">
+                    <input
+                        type="text"
+                        name="search"
+                        placeholder="Szukaj po tytule, opisie, lokalizacji..."
+                        class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        hx-get="/browse"
+                        hx-trigger="keyup changed delay:500ms, search"
+                        hx-target="#items-grid"
+                        hx-include="[name='category'], [name='status']"
+                        hx-push-url="true"
+                    >
+                    <svg class="absolute left-4 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </div>
+            </div>
+
+            <select
+                name="category"
+                class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                hx-get="/browse"
+                hx-trigger="change"
+                hx-target="#items-grid"
+                hx-include="[name='search'], [name='status']"
+                hx-push-url="true"
+            >
+                <option value="">Wszystkie kategorie</option>
+                <option value="Dokumenty">Dokumenty</option>
+                <option value="Elektronika">Elektronika</option>
+                <option value="Biżuteria">Biżuteria</option>
+                <option value="Odzież">Odzież</option>
+                <option value="Portfele i torby">Portfele i torby</option>
+                <option value="Klucze">Klucze</option>
+                <option value="Telefony">Telefony</option>
+                <option value="Zwierzęta">Zwierzęta</option>
+                <option value="Inne">Inne</option>
+            </select>
+
+            <select
+                name="status"
+                class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                hx-get="/browse"
+                hx-trigger="change"
+                hx-target="#items-grid"
+                hx-include="[name='search'], [name='category']"
+                hx-push-url="true"
+            >
+                <option value="">Wszystkie statusy</option>
+                <option value="pending">Oczekujące</option>
+                <option value="published">Opublikowane</option>
+                <option value="archived">Archiwalne</option>
+            </select>
+
+            <!-- Loading Indicator -->
+            <div class="htmx-indicator ml-2">
+                 <div class="spinner"></div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Items Grid Container -->
+    <div id="items-grid" class="min-h-[200px]">
+        {{template "items-list" .}}
+    </div>
+</div>
+{{end}}
+
+{{define "items-list"}}
+    <!-- Items Count -->
+    <div class="flex items-center justify-between text-sm text-gray-600 mb-6">
+        <span>Znaleziono: <strong>{{len .Items}}</strong> zgub(y)</span>
+    </div>
+
+    {{if .Items}}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 transition-opacity duration-200">
+        {{range .Items}}
+        <div class="item-card bg-white rounded-xl shadow-lg overflow-hidden cursor-pointer h-full flex flex-col"
+             onclick="window.location.href='/zguba/{{.ID}}'">
+            <!-- Image -->
+            <div class="relative h-48 bg-gray-200 overflow-hidden flex-shrink-0">
+                {{if .ImageURL}}
+                <img src="{{.ImageURL}}" alt="{{.Title}}" class="w-full h-full object-cover transition-transform duration-300 hover:scale-105">
+                {{else}}
+                <div class="w-full h-full flex items-center justify-center bg-gray-100">
+                    <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                {{end}}
+
+                <!-- Status Badge -->
+                <div class="absolute top-3 right-3 shadow-sm">
+                    {{if eq .Status "pending"}}
+                    <span class="px-3 py-1 bg-yellow-100 text-yellow-800 border border-yellow-200 text-xs font-semibold rounded-full">Oczekujące</span>
+                    {{else if eq .Status "published"}}
+                    <span class="px-3 py-1 bg-green-100 text-green-800 border border-green-200 text-xs font-semibold rounded-full">Opublikowane</span>
+                    {{else}}
+                    <span class="px-3 py-1 bg-gray-100 text-gray-800 border border-gray-200 text-xs font-semibold rounded-full">Archiwalne</span>
+                    {{end}}
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="p-6 flex-1 flex flex-col">
+                <div class="flex items-start justify-between mb-3">
+                    <h3 class="text-lg font-bold text-gray-900 line-clamp-2 hover:text-blue-600 transition-colors">{{.Title}}</h3>
+                </div>
+
+                <p class="text-gray-600 text-sm mb-4 line-clamp-2 flex-grow">{{.Description}}</p>
+
+                <div class="space-y-3 text-sm text-gray-500 mt-auto pt-4 border-t border-gray-100">
+                    <!-- Category -->
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                        </svg>
+                        <span class="px-2 py-0.5 bg-gray-100 text-gray-700 rounded font-medium">{{.Category}}</span>
+                    </div>
+
+                    <!-- Location -->
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        <span class="truncate">{{.Location}}</span>
+                    </div>
+
+                    <!-- Date -->
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span>{{.FoundDate.Format "02.01.2006"}}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{end}}
+    </div>
+    {{else}}
+    <!-- Empty State -->
+    <div class="text-center py-16 bg-white rounded-xl shadow-lg border-2 border-dashed border-gray-100">
+        <div class="bg-gray-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 mb-2">Brak wyników</h3>
+        <p class="text-gray-500 mb-6 max-w-sm mx-auto">Nie znaleziono zgub pasujących do wybranych kryteriów. Spróbuj zmienić filtry lub wyszukaj coś innego.</p>
+        <button
+            class="text-blue-600 hover:text-blue-800 font-medium"
+            onclick="document.getElementById('filter-form').reset(); window.location.href='/browse'"
+        >
+            Wyczyść filtry
+        </button>
+    </div>
+    {{end}}
+{{end}}

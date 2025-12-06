@@ -1,0 +1,533 @@
+{{define "content"}}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Dodaj Nową Zgubę</h1>
+        <p class="text-gray-600">
+            Wypełnij formularz poniżej. AI pomoże Ci automatycznie opisać
+            przedmiot na podstawie zdjęcia.
+        </p>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white rounded-xl shadow-lg p-8">
+        <form
+            id="create-form"
+            hx-post="/create"
+            hx-encoding="multipart/form-data"
+            hx-indicator="#submit-indicator"
+            class="space-y-6"
+        >
+            <!-- Image Upload Section -->
+            <div
+                class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors"
+            >
+                <div class="space-y-4">
+                    <div
+                        class="mx-auto w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center"
+                    >
+                        <svg
+                            class="w-12 h-12 text-blue-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            ></path>
+                        </svg>
+                    </div>
+
+                    <div>
+                        <label for="image" class="cursor-pointer">
+                            <span
+                                class="text-blue-600 hover:text-blue-700 font-medium"
+                                >Wybierz zdjęcie</span
+                            >
+                            <span class="text-gray-600">
+                                lub przeciągnij i upuść</span
+                            >
+                        </label>
+                        <input
+                            type="file"
+                            id="image"
+                            name="image"
+                            accept="image/*"
+                            required
+                            class="hidden"
+                            onchange="handleImageUpload(this)"
+                        />
+                        <p class="text-sm text-gray-500 mt-2">
+                            PNG, JPG, GIF do 10MB
+                        </p>
+                    </div>
+
+                    <!-- Image Preview -->
+                    <div id="image-preview" class="hidden mt-4">
+                        <img
+                            id="preview-img"
+                            class="mx-auto max-h-64 rounded-lg shadow-lg"
+                            alt="Podgląd"
+                        />
+                        <button
+                            type="button"
+                            onclick="clearImage()"
+                            class="mt-3 text-sm text-red-600 hover:text-red-800"
+                        >
+                            Usuń zdjęcie
+                        </button>
+                    </div>
+
+                    <!-- AI Analysis Button -->
+                    <div id="analyze-section" class="hidden">
+                        <button
+                            type="button"
+                            onclick="analyzeImage()"
+                            class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors inline-flex items-center"
+                        >
+                            <svg
+                                class="w-5 h-5 mr-2"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                                ></path>
+                            </svg>
+                            <span>Opisz zdjęcie za pomocą AI</span>
+                            <span
+                                id="analyze-indicator"
+                                class="htmx-indicator ml-2"
+                            >
+                                <div class="spinner"></div>
+                            </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Suggestions Container -->
+            <div id="ai-suggestions"></div>
+
+            <!-- Title -->
+            <div>
+                <label
+                    for="title"
+                    class="block text-sm font-semibold text-gray-700 mb-2"
+                >
+                    Tytuł zgłoszenia <span class="text-red-500">*</span>
+                </label>
+                <input
+                    type="text"
+                    id="title"
+                    name="title"
+                    required
+                    placeholder="np. Znaleziony portfel"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+                <p class="mt-1 text-sm text-gray-500">Krótki, opisowy tytuł</p>
+            </div>
+
+            <!-- Description -->
+            <div>
+                <label
+                    for="description"
+                    class="block text-sm font-semibold text-gray-700 mb-2"
+                >
+                    Opis przedmiotu <span class="text-red-500">*</span>
+                </label>
+                <textarea
+                    id="description"
+                    name="description"
+                    rows="4"
+                    required
+                    placeholder="Szczegółowy opis znalezionego przedmiotu..."
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                ></textarea>
+                <p class="mt-1 text-sm text-gray-500">
+                    Im więcej szczegółów, tym łatwiej właściciel odnajdzie swój
+                    przedmiot
+                </p>
+            </div>
+
+            <!-- Category -->
+            <div>
+                <label
+                    for="category"
+                    class="block text-sm font-semibold text-gray-700 mb-2"
+                >
+                    Kategoria <span class="text-red-500">*</span>
+                </label>
+                <select
+                    id="category"
+                    name="category"
+                    required
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                >
+                    <option value="">Wybierz kategorię</option>
+                    {{range .Categories}}
+                    <option value="{{.}}">{{.}}</option>
+                    {{end}}
+                </select>
+            </div>
+
+            <!-- Location -->
+            <div>
+                <label
+                    for="location"
+                    class="block text-sm font-semibold text-gray-700 mb-2"
+                >
+                    Miejsce znalezienia <span class="text-red-500">*</span>
+                </label>
+                <input
+                    type="text"
+                    id="location"
+                    name="location"
+                    required
+                    placeholder="np. Rynek Główny, Kraków"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+                <p class="mt-1 text-sm text-gray-500">
+                    Podaj dokładną lokalizację
+                </p>
+            </div>
+
+            <!-- Found Date -->
+            <div>
+                <label
+                    for="found_date"
+                    class="block text-sm font-semibold text-gray-700 mb-2"
+                >
+                    Data znalezienia <span class="text-red-500">*</span>
+                </label>
+                <input
+                    type="date"
+                    id="found_date"
+                    name="found_date"
+                    required
+                    max="{{.Today}}"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+            </div>
+
+            <!-- Contact Info -->
+            <div>
+                <label
+                    for="contact_info"
+                    class="block text-sm font-semibold text-gray-700 mb-2"
+                >
+                    Informacje kontaktowe
+                </label>
+                <input
+                    type="text"
+                    id="contact_info"
+                    name="contact_info"
+                    placeholder="np. biuro@urzad.pl, tel. 123-456-789"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                />
+                <p class="mt-1 text-sm text-gray-500">
+                    Opcjonalnie - dla osób szukających swoich rzeczy
+                </p>
+            </div>
+
+            <!-- Hidden Image URL (for Service B) -->
+            <input type="hidden" id="imageUrl" name="imageUrl" value="" />
+
+            <!-- Submit Button -->
+            <div
+                class="flex items-center justify-between pt-6 border-t border-gray-200"
+            >
+                <a
+                    href="/"
+                    class="text-gray-600 hover:text-gray-900 font-medium"
+                >
+                    ← Anuluj
+                </a>
+
+                <button
+                    type="submit"
+                    class="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold inline-flex items-center"
+                >
+                    <svg
+                        class="w-5 h-5 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M5 13l4 4L19 7"
+                        ></path>
+                    </svg>
+                    <span>Dodaj Zgubę</span>
+                    <span id="submit-indicator" class="htmx-indicator ml-2">
+                        <div class="spinner"></div>
+                    </span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Help Section -->
+    <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+        <h3 class="font-semibold text-blue-900 mb-3 flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                    fill-rule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clip-rule="evenodd"
+                ></path>
+            </svg>
+            Wskazówki
+        </h3>
+        <ul class="space-y-2 text-sm text-blue-800">
+            <li class="flex items-start">
+                <span class="mr-2">✓</span>
+                <span
+                    >Użyj funkcji AI do automatycznego wygenerowania opisu z
+                    zdjęcia</span
+                >
+            </li>
+            <li class="flex items-start">
+                <span class="mr-2">✓</span>
+                <span
+                    >Podaj jak najwięcej szczegółów - pomoże to właścicielowi
+                    odnaleźć przedmiot</span
+                >
+            </li>
+            <li class="flex items-start">
+                <span class="mr-2">✓</span>
+                <span
+                    >Wszystkie dane zostaną automatycznie przekazane do
+                    publikacji na dane.gov.pl</span
+                >
+            </li>
+            <li class="flex items-start">
+                <span class="mr-2">✓</span>
+                <span
+                    >Po dodaniu, przedmiot będzie dostępny w wyszukiwarce
+                    semantycznej</span
+                >
+            </li>
+        </ul>
+    </div>
+</div>
+
+<script>
+    // Set today's date as max
+    document.getElementById("found_date").max = new Date()
+        .toISOString()
+        .split("T")[0];
+
+    // Handle image upload preview
+    function handleImageUpload(input) {
+        if (input.files && input.files[0]) {
+            const file = input.files[0];
+
+            // Validate file size (10MB)
+            if (file.size > 10 * 1024 * 1024) {
+                alert("Plik jest za duży. Maksymalny rozmiar to 10MB.");
+                input.value = "";
+                return;
+            }
+
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                document.getElementById("preview-img").src = e.target.result;
+                document
+                    .getElementById("image-preview")
+                    .classList.remove("hidden");
+                document
+                    .getElementById("analyze-section")
+                    .classList.remove("hidden");
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    // Clear image
+    function clearImage() {
+        document.getElementById("image").value = "";
+        document.getElementById("image-preview").classList.add("hidden");
+        document.getElementById("analyze-section").classList.add("hidden");
+        document.getElementById("ai-suggestions").innerHTML = "";
+    }
+
+    // Analyze image with AI
+    function analyzeImage() {
+        const fileInput = document.getElementById("image");
+        if (!fileInput.files || !fileInput.files[0]) {
+            alert("Proszę najpierw wybrać zdjęcie");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("image", fileInput.files[0]);
+
+        // Show loading indicator on button
+        const button = event.target.closest("button");
+        const indicator = document.getElementById("analyze-indicator");
+        indicator.style.display = "inline-block";
+        button.disabled = true;
+
+        fetch("/api/analyze-image", {
+            method: "POST",
+            body: formData,
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                // Hide loading indicator
+                indicator.style.display = "none";
+                button.disabled = false;
+
+                console.log("API Response:", data);
+
+                if (data.error) {
+                    showAISuggestion(null, data.error);
+                } else {
+                    showAISuggestion(data);
+                }
+            })
+            .catch((error) => {
+                indicator.style.display = "none";
+                button.disabled = false;
+                console.error("Fetch Error:", error);
+                showAISuggestion(null, "Wystąpił błąd podczas analizy obrazu");
+            });
+    }
+
+    // Show AI suggestion
+    function showAISuggestion(data, error = null) {
+        const container = document.getElementById("ai-suggestions");
+
+        if (error) {
+            container.innerHTML = `
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p class="text-yellow-800">⚠️ ${error}</p>
+                </div>
+            `;
+            return;
+        }
+
+        const escapedDescription = data.description
+            .replace(/'/g, "\\'")
+            .replace(/"/g, "&quot;");
+
+        container.innerHTML = `
+            <div class="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-lg p-6">
+                <div class="flex items-start gap-3 mb-4">
+                    <div class="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-purple-900 mb-2">✨ Sugestia AI</h3>
+                        <p class="text-gray-800 leading-relaxed mb-3">${data.description}</p>
+                        <div class="flex flex-wrap items-center gap-3 text-sm">
+                            <div class="flex items-center gap-2">
+                                <span class="font-medium text-gray-700">Kategoria:</span>
+                                <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full font-medium">${data.category}</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-gray-600">
+                                <span class="font-medium">Pewność:</span>
+                                <span class="capitalize">${data.confidence}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button
+                    type="button"
+                    onclick="applyAISuggestion('${escapedDescription}', '${data.category}')"
+                    class="w-full mt-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
+                >
+                    ✓ Użyj tej sugestii
+                </button>
+            </div>
+        `;
+
+        // Scroll to suggestions
+        container.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    // Apply AI suggestion to form
+    function applyAISuggestion(description, category) {
+        document.getElementById("description").value = description;
+        document.getElementById("category").value = category;
+
+        // Show success message
+        const container = document.getElementById("ai-suggestions");
+        const originalHTML = container.innerHTML;
+
+        container.innerHTML = `
+            <div class="bg-green-50 border-2 border-green-200 rounded-lg p-4 text-center">
+                <p class="text-green-800 font-medium">✓ Sugestia AI została zastosowana!</p>
+            </div>
+        `;
+
+        // Scroll to description field
+        document
+            .getElementById("description")
+            .scrollIntoView({ behavior: "smooth", block: "center" });
+
+        // Restore original after 2 seconds
+        setTimeout(() => {
+            container.innerHTML = originalHTML;
+        }, 2000);
+    }
+
+    // Drag and drop functionality
+    const dropZone = document.querySelector(".border-dashed");
+
+    ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    ["dragenter", "dragover"].forEach((eventName) => {
+        dropZone.addEventListener(
+            eventName,
+            () => {
+                dropZone.classList.add("border-blue-500", "bg-blue-50");
+            },
+            false
+        );
+    });
+
+    ["dragleave", "drop"].forEach((eventName) => {
+        dropZone.addEventListener(
+            eventName,
+            () => {
+                dropZone.classList.remove("border-blue-500", "bg-blue-50");
+            },
+            false
+        );
+    });
+
+    dropZone.addEventListener(
+        "drop",
+        (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            const fileInput = document.getElementById("image");
+            fileInput.files = files;
+            handleImageUpload(fileInput);
+        },
+        false
+    );
+</script>
+{{end}}

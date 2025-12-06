@@ -1,0 +1,500 @@
+package handlers
+
+import (
+	"bytes"
+	"encoding/base64"
+	"encoding/json"
+	"fmt"
+	"html/template"
+	"io"
+	"net/http"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/gorilla/mux"
+	"github.com/hacknation/odnalezione-zguby/service-a-gateway/internal/models"
+	"github.com/hacknation/odnalezione-zguby/service-a-gateway/internal/services"
+	"github.com/hacknation/odnalezione-zguby/service-a-gateway/internal/storage"
+	"github.com/rs/zerolog/log"
+)
+
+// Handler contains all HTTP handlers
+type Handler struct {
+	templates     map[string]*template.Template // Map of page name -> template set
+	storage       *storage.MinIOStorage
+	rabbitMQ      *services.RabbitMQPublisher
+	visionService *services.VisionService
+	items         map[string]*models.LostItem // TODO: In-memory store (replace with DB later)
+}
+
+// NewHandler creates a new handler instance
+func NewHandler(
+	templatesPath string,
+	storage *storage.MinIOStorage,
+	rabbitMQ *services.RabbitMQPublisher,
+	visionService *services.VisionService,
+) (*Handler, error) {
+	// Parse base template
+	basePath := filepath.Join(templatesPath, "base.html")
+	baseTmpl, err := template.ParseFiles(basePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse base template: %w", err)
+	}
+
+	// Helper to create page templates
+	pages := []string{"index.html", "create.html", "browse.html", "detail.html"}
+	templates := make(map[string]*template.Template)
+
+	for _, page := range pages {
+		// Clone base template
+		tmpl, err := baseTmpl.Clone()
+		if err != nil {
+			return nil, fmt.Errorf("failed to clone base template for %s: %w", page, err)
+		}
+
+		// Parse page template
+		pagePath := filepath.Join(templatesPath, page)
+		_, err = tmpl.ParseFiles(pagePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse page template %s: %w", page, err)
+		}
+
+		templates[page] = tmpl
+	}
+
+	return &Handler{
+		templates:     templates,
+		storage:       storage,
+		rabbitMQ:      rabbitMQ,
+		visionService: visionService,
+		items:         make(map[string]*models.LostItem),
+	}, nil
+}
+
+// HomeHandler handles the home page
+func (h *Handler) HomeHandler(w http.ResponseWriter, r *http.Request) {
+	data := map[string]interface{}{
+		"Title": "Odnalezione Zguby - System zgłaszania rzeczy znalezionych",
+	}
+
+	// Render the index page using the base template
+	tmpl, ok := h.templates["index.html"]
+	if !ok {
+		log.Error().Msg("Template index.html not found")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "base.html", data); err != nil {
+		log.Error().Err(err).Msg("Failed to render home template")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
+}
+
+// CreateFormHandler shows the form to create a new lost item
+func (h *Handler) CreateFormHandler(w http.ResponseWriter, r *http.Request) {
+	data := map[string]interface{}{
+		"Title":      "Dodaj Zgubę",
+		"Categories": models.Categories,
+	}
+
+	// Render the create page using the base template
+	tmpl, ok := h.templates["create.html"]
+	if !ok {
+		log.Error().Msg("Template create.html not found")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "base.html", data); err != nil {
+		log.Error().Err(err).Msg("Failed to render create template")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
+}
+
+// CreateHandler handles creating a new lost item
+func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse multipart form
+	err := r.ParseMultipartForm(10 << 20) // 10 MB max
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to parse form")
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	// Extract form data
+	title := r.FormValue("title")
+	description := r.FormValue("description")
+	category := r.FormValue("category")
+	location := r.FormValue("location")
+	foundDateStr := r.FormValue("found_date")
+	contactInfo := r.FormValue("contact_info")
+	imageURL := r.FormValue("imageUrl") // URL from AI analysis (already in MinIO)
+
+	// Validate required fields
+	if title == "" || description == "" || location == "" || foundDateStr == "" {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	// Parse found date
+	foundDate, err := time.Parse("2006-01-02", foundDateStr)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to parse found date")
+		http.Error(w, "Invalid date format", http.StatusBadRequest)
+		return
+	}
+
+	// If imageUrl is not provided from AI analysis, try to get it from form file upload
+	if imageURL == "" {
+		file, header, err := r.FormFile("image")
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to get file from form")
+			http.Error(w, "Image is required", http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+
+		// Validate file type
+		contentType := header.Header.Get("Content-Type")
+		if !strings.HasPrefix(contentType, "image/") {
+			http.Error(w, "Only image files are allowed", http.StatusBadRequest)
+			return
+		}
+
+		// Upload to MinIO
+		ctx := r.Context()
+		imageURL, err = h.storage.UploadImage(ctx, file, header.Filename, contentType, header.Size)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to upload image")
+			http.Error(w, "Failed to upload image", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	// Create lost item
+	itemID := uuid.New().String()
+	now := time.Now()
+
+	item := &models.LostItem{
+		ID:          itemID,
+		Title:       title,
+		Description: description,
+		Category:    category,
+		Location:    location,
+		FoundDate:   foundDate,
+		ImageURL:    imageURL,
+		Status:      "pending",
+		ContactInfo: contactInfo,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+
+	// Store in memory (replace with DB later)
+	h.items[itemID] = item
+
+	// Publish event to RabbitMQ
+	event := models.ItemSubmittedEvent{
+		ID:          item.ID,
+		Title:       item.Title,
+		Description: item.Description,
+		Category:    item.Category,
+		Location:    item.Location,
+		FoundDate:   item.FoundDate,
+		ImageURL:    item.ImageURL,
+		ContactInfo: item.ContactInfo,
+		Timestamp:   now,
+	}
+
+	if err := h.rabbitMQ.PublishItemSubmitted(r.Context(), event); err != nil {
+		log.Error().Err(err).Msg("Failed to publish event to RabbitMQ")
+		// Don't fail the request - item is still created
+	}
+
+	log.Info().
+		Str("item_id", itemID).
+		Str("title", title).
+		Msg("Lost item created successfully")
+
+	// Return success response (HTMX will handle this)
+	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("HX-Redirect", fmt.Sprintf("/zguba/%s", itemID))
+	w.WriteHeader(http.StatusCreated)
+	fmt.Fprintf(w, `<div class="alert alert-success">Zguba została dodana pomyślnie!</div>`)
+}
+
+// BrowseHandler shows list of all lost items
+func (h *Handler) BrowseHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse query params
+	query := strings.ToLower(r.URL.Query().Get("search"))
+	category := strings.ToLower(r.URL.Query().Get("category"))
+	status := strings.ToLower(r.URL.Query().Get("status"))
+
+	// Filter items
+	filteredItems := make([]*models.LostItem, 0)
+	for _, item := range h.items {
+		// Filter by search query
+		if query != "" && !strings.Contains(strings.ToLower(item.Title), query) &&
+			!strings.Contains(strings.ToLower(item.Description), query) &&
+			!strings.Contains(strings.ToLower(item.Location), query) {
+			continue
+		}
+
+		// Filter by category
+		if category != "" && strings.ToLower(item.Category) != category {
+			continue
+		}
+
+		// Filter by status
+		if status != "" && strings.ToLower(item.Status) != status {
+			continue
+		}
+
+		filteredItems = append(filteredItems, item)
+	}
+
+	data := map[string]interface{}{
+		"Title": "Przeglądaj Zguby",
+		"Items": filteredItems,
+	}
+
+	// Get the browse template
+	tmpl, ok := h.templates["browse.html"]
+	if !ok {
+		log.Error().Msg("Template browse.html not found")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// Check for HTMX request
+	if r.Header.Get("HX-Request") == "true" {
+		// Render only the items list partial
+		if err := tmpl.ExecuteTemplate(w, "items-list", data); err != nil {
+			log.Error().Err(err).Msg("Failed to render items-list template")
+			http.Error(w, "Internal server error", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Full page render
+	if err := tmpl.ExecuteTemplate(w, "base.html", data); err != nil {
+		log.Error().Err(err).Msg("Failed to render browse template")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
+}
+
+// ItemDetailHandler shows details of a single lost item
+func (h *Handler) ItemDetailHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	itemID := vars["id"]
+
+	item, exists := h.items[itemID]
+	if !exists {
+		http.Error(w, "Item not found", http.StatusNotFound)
+		return
+	}
+
+	data := map[string]interface{}{
+		"Title": item.Title,
+		"Item":  item,
+	}
+
+	tmpl, ok := h.templates["detail.html"]
+	if !ok {
+		log.Error().Msg("Template detail.html not found")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "base.html", data); err != nil {
+		log.Error().Err(err).Msg("Failed to render detail template")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
+}
+
+// AnalyzeImageHandler handles image analysis with Vision API
+func (h *Handler) AnalyzeImageHandler(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseMultipartForm(10 << 20) // 10 MB max
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to parse form")
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	// Get uploaded file
+	file, header, err := r.FormFile("image")
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get file from form")
+		http.Error(w, "Image is required", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// Validate file type
+	contentType := header.Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, "image/") {
+		http.Error(w, "Only image files are allowed", http.StatusBadRequest)
+		return
+	}
+
+	// Read image into memory and encode as base64
+	imageBuffer := new(bytes.Buffer)
+	_, err = io.Copy(imageBuffer, file)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to read image")
+		http.Error(w, "Failed to read image", http.StatusInternalServerError)
+		return
+	}
+
+	imageBytes := imageBuffer.Bytes()
+	imageBase64 := base64.StdEncoding.EncodeToString(imageBytes)
+
+	// Analyze with Vision API using base64 (quick analysis)
+	ctx := r.Context()
+	analysis, err := h.visionService.AnalyzeImageBase64(ctx, imageBase64)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to analyze image")
+		// Return a default response instead of failing
+		analysis = &services.AnalyzeImageResponse{
+			Description: "Nie udało się automatycznie opisać przedmiotu. Proszę wpisać opis ręcznie.",
+			Category:    "Inne",
+			Confidence:  "low",
+		}
+	}
+
+	// Upload original image to MinIO for Service B (Python Worker) to process later
+	imageReader := bytes.NewReader(imageBytes)
+	imageURL, err := h.storage.UploadImage(ctx, imageReader, header.Filename, contentType, int64(len(imageBytes)))
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to upload image to MinIO")
+		// Don't fail the request - analysis was successful
+		imageURL = ""
+	}
+
+	// Return JSON response with analysis and image URL
+	w.Header().Set("Content-Type", "application/json")
+	response := map[string]interface{}{
+		"description": analysis.Description,
+		"category":    analysis.Category,
+		"confidence":  analysis.Confidence,
+		"imageUrl":    imageURL,
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
+// AnalyzeImageFormHandler returns HTMX partial with AI-suggested description
+func (h *Handler) AnalyzeImageFormHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse multipart form
+	err := r.ParseMultipartForm(10 << 20) // 10 MB max
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to parse form")
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	// Get uploaded file
+	file, header, err := r.FormFile("image")
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get file from form")
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprint(w, `<div class="text-red-600">Błąd: Nie wybrano pliku</div>`)
+		return
+	}
+	defer file.Close()
+
+	// Read file content and encode as base64
+	fileBytes, err := io.ReadAll(file)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to read file")
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprint(w, `<div class="text-red-600">Błąd: Nie można odczytać pliku</div>`)
+		return
+	}
+
+	imageBase64 := base64.StdEncoding.EncodeToString(fileBytes)
+
+	// Analyze with Vision API using base64
+	ctx := r.Context()
+	analysis, err := h.visionService.AnalyzeImageBase64(ctx, imageBase64)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to analyze image")
+		w.Header().Set("Content-Type", "text/html")
+		fmt.Fprintf(w, `
+			<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-4">
+				<p class="text-yellow-800">⚠️ Nie udało się automatycznie przeanalizować obrazu. Proszę wpisać opis ręcznie.</p>
+			</div>
+		`)
+		return
+	}
+
+	// Upload image to MinIO for Service B (Python Worker)
+	imageURL, err := h.storage.UploadImage(ctx, bytes.NewReader(fileBytes), header.Filename, "image/jpeg", int64(len(fileBytes)))
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to upload image to MinIO")
+		// Continue - analysis was successful
+	}
+
+	// Return HTMX partial with the analysis and store imageURL as data attribute
+	w.Header().Set("Content-Type", "text/html")
+	fmt.Fprintf(w, `
+		<div id="ai-suggestion" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4" data-image-url="%s">
+			<h3 class="font-semibold text-blue-900 mb-2">✨ Sugestia AI:</h3>
+			<p class="text-blue-800 mb-3">%s</p>
+			<div class="flex items-center gap-2 text-sm text-blue-700">
+				<span class="font-medium">Kategoria:</span>
+				<span class="px-2 py-1 bg-blue-100 rounded">%s</span>
+				<span class="ml-2 text-xs">Pewność: %s</span>
+			</div>
+			<button
+				type="button"
+				onclick="document.getElementById('description').value = '%s'; document.getElementById('category').value = '%s'; document.getElementById('imageUrl').value = '%s';"
+				class="mt-3 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+			>
+				Użyj tej sugestii
+			</button>
+		</div>
+	`, imageURL, analysis.Description, analysis.Category, analysis.Confidence,
+		strings.ReplaceAll(analysis.Description, "'", "\\'"), analysis.Category, imageURL)
+}
+
+// HealthCheckHandler returns health status
+func (h *Handler) HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	health := map[string]interface{}{
+		"status": "healthy",
+		"checks": map[string]string{
+			"storage":  "ok",
+			"rabbitmq": "ok",
+			"vision":   "ok",
+		},
+	}
+
+	// Check MinIO
+	if err := h.storage.HealthCheck(ctx); err != nil {
+		health["status"] = "unhealthy"
+		health["checks"].(map[string]string)["storage"] = err.Error()
+	}
+
+	// Check RabbitMQ
+	if err := h.rabbitMQ.HealthCheck(); err != nil {
+		health["status"] = "unhealthy"
+		health["checks"].(map[string]string)["rabbitmq"] = err.Error()
+	}
+
+	// Check Vision API
+	if err := h.visionService.HealthCheck(ctx); err != nil {
+		health["status"] = "unhealthy"
+		health["checks"].(map[string]string)["vision"] = err.Error()
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	statusCode := http.StatusOK
+	if health["status"] == "unhealthy" {
+		statusCode = http.StatusServiceUnavailable
+	}
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(health)
+}
