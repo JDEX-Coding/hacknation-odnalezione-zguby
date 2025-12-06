@@ -70,12 +70,27 @@ func main() {
 	}
 	log.Info().Msg("Vision API service initialized")
 
+	log.Info().Msg("Initializing Postgres storage...")
+	itemStorage, err := storage.NewPostgresStorage(
+		config.DBHost,
+		config.DBPort,
+		config.DBUser,
+		config.DBPassword,
+		config.DBName,
+		config.DBSSLMode,
+	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize Postgres storage")
+	}
+	log.Info().Msg("Postgres storage initialized")
+
 	log.Info().Msg("Initializing HTTP handlers...")
 	handler, err := handlers.NewHandler(
 		config.TemplatesPath,
 		minioStorage,
 		rabbitMQPublisher,
 		visionService,
+		itemStorage,
 	)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize handlers")
@@ -137,6 +152,12 @@ type Config struct {
 	VisionAPIKey      string
 	VisionAPIEndpoint string
 	VisionModel       string
+	DBHost            string
+	DBPort            string
+	DBUser            string
+	DBPassword        string
+	DBName            string
+	DBSSLMode         string
 }
 
 // loadConfig loads configuration from environment variables
@@ -156,6 +177,12 @@ func loadConfig() *Config {
 		VisionAPIKey:      getEnv("VISION_API_KEY", ""),
 		VisionAPIEndpoint: getEnv("VISION_API_ENDPOINT", "https://api.openai.com/v1"),
 		VisionModel:       getEnv("VISION_MODEL", "gpt-4o"),
+		DBHost:            getEnv("DB_HOST", "localhost"),
+		DBPort:            getEnv("DB_PORT", "5432"),
+		DBUser:            getEnv("DB_USER", "postgres"),
+		DBPassword:        getEnv("DB_PASSWORD", "postgres"),
+		DBName:            getEnv("DB_NAME", "postgres"),
+		DBSSLMode:         getEnv("DB_SSL_MODE", "disable"),
 	}
 }
 

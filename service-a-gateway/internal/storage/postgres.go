@@ -1,0 +1,152 @@
+package storage
+
+import (
+	"database/sql"
+	"fmt"
+	"time"
+
+	"github.com/hacknation/odnalezione-zguby/service-a-gateway/internal/models"
+	_ "github.com/lib/pq"
+	"github.com/rs/zerolog/log"
+)
+
+type PostgresStorage struct {
+	db *sql.DB
+}
+
+func NewPostgresStorage(host, port, user, password, dbName, sslMode string) (*PostgresStorage, error) {
+	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		host, port, user, password, dbName, sslMode)
+
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open db connection: %w", err)
+	}
+
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping db: %w", err)
+	}
+
+	storage := &PostgresStorage{db: db}
+	if err := storage.Init(); err != nil {
+		return nil, fmt.Errorf("failed to initialize db schema: %w", err)
+	}
+
+	return storage, nil
+}
+
+// Init creates necessary tables
+func (s *PostgresStorage) Init() error {
+	query := `
+	CREATE TABLE IF NOT EXISTS lost_items (
+		id VARCHAR(36) PRIMARY KEY,
+		title TEXT NOT NULL,
+		description TEXT,
+		category VARCHAR(100),
+		location TEXT,
+		found_date TIMESTAMP,
+		image_url TEXT,
+		status VARCHAR(50),
+		contact_info TEXT,
+		created_at TIMESTAMP,
+		updated_at TIMESTAMP
+	);`
+
+	_, err := s.db.Exec(query)
+	return err
+}
+
+func (s *PostgresStorage) Save(item *models.LostItem) error {
+	query := `
+	INSERT INTO lost_items (
+		id, title, description, category, location, found_date,
+		image_url, status, contact_info, created_at, updated_at
+	) VALUES (
+		$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+	) ON CONFLICT (id) DO UPDATE SET
+		title = EXCLUDED.title,
+		description = EXCLUDED.description,
+		category = EXCLUDED.category,
+		location = EXCLUDED.location,
+		found_date = EXCLUDED.found_date,
+		image_url = EXCLUDED.image_url,
+		status = EXCLUDED.status,
+		contact_info = EXCLUDED.contact_info,
+		updated_at = EXCLUDED.updated_at
+	;`
+
+	now := time.Now()
+	if item.CreatedAt.IsZero() {
+		item.CreatedAt = now
+	}
+	item.UpdatedAt = now
+
+	_, err := s.db.Exec(query,
+		item.ID, item.Title, item.Description, item.Category, item.Location,
+		item.FoundDate, item.ImageURL, item.Status, item.ContactInfo,
+		item.CreatedAt, item.UpdatedAt,
+	)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to save item to postgres")
+		return err
+	}
+
+	return nil
+}
+
+// Get retrieves an item by ID
+func (s *PostgresStorage) Get(id string) (*models.LostItem, bool) {
+	query := `
+	SELECT id, title, description, category, location, found_date,
+		   image_url, status, contact_info, created_at, updated_at
+	FROM lost_items WHERE id = $1`
+
+	item := &models.LostItem{}
+	err := s.db.QueryRow(query, id).Scan(
+		&item.ID, &item.Title, &item.Description, &item.Category, &item.Location,
+		&item.FoundDate, &item.ImageURL, &item.Status, &item.ContactInfo,
+		&item.CreatedAt, &item.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, false
+	}
+	if err != nil {
+		log.Error().Err(err).Str("id", id).Msg("Failed to get item from postgres")
+		return nil, false
+	}
+
+	return item, true
+}
+
+// List returns all items
+func (s *PostgresStorage) List() ([]*models.LostItem, error) {
+	query := `
+	SELECT id, title, description, category, location, found_date,
+		   image_url, status, contact_info, created_at, updated_at
+	FROM lost_items
+	ORDER BY created_at DESC`
+
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []*models.LostItem
+	for rows.Next() {
+		item := &models.LostItem{}
+		err := rows.Scan(
+			&item.ID, &item.Title, &item.Description, &item.Category, &item.Location,
+			&item.FoundDate, &item.ImageURL, &item.Status, &item.ContactInfo,
+			&item.CreatedAt, &item.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+
+	return items, nil
+}
