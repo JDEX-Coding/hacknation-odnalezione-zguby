@@ -35,8 +35,8 @@ services:
         image: rabbitmq:3.12-management-alpine
         container_name: odnalezione-rabbitmq
         ports:
-            - "5672:5672"
-            - "15672:15672" # Management UI
+            - "5674:5672"
+            - "15674:15672" # Management UI
         environment:
             RABBITMQ_DEFAULT_USER: admin
             RABBITMQ_DEFAULT_PASS: admin123
@@ -105,7 +105,7 @@ services:
         image: postgres:15-alpine
         container_name: odnalezione-postgres
         ports:
-            - "5432:5432"
+            - "5434:5432"
         environment:
             POSTGRES_USER: admin
             POSTGRES_PASSWORD: admin123
@@ -125,7 +125,7 @@ services:
             context: ./service-a-gateway
             dockerfile: Dockerfile
         ports:
-            - "8080:8080"
+            - "8082:8080"
         environment:
             - GATEWAY_PORT=8080
             - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672/
@@ -148,6 +148,28 @@ services:
                 condition: service_healthy
             postgres:
                 condition: service_healthy
+        networks:
+            - odnalezione-network
+
+    c-publisher:
+        container_name: odnalezione-publisher
+        build:
+            context: ./service-c-publisher
+            dockerfile: Dockerfile
+        environment:
+            - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672/
+            - RABBITMQ_EXCHANGE=lost-found.events
+            - RABBITMQ_QUEUE=q.lost-items.publish
+            - RABBITMQ_ROUTING_KEY=item.vectorized
+            - DANE_GOV_API_URL=${DANE_GOV_API_URL:-http://localhost:8000}
+            - DANE_GOV_API_KEY=${DANE_GOV_API_KEY:-}
+            - PUBLISHER_NAME=Urząd Miasta - System Rzeczy Znalezionych
+            - PUBLISHER_ID=${PUBLISHER_ID:-org-001}
+            - BASE_URL=http://localhost:8080
+        depends_on:
+            rabbitmq:
+                condition: service_healthy
+        restart: unless-stopped
         networks:
             - odnalezione-network
 
