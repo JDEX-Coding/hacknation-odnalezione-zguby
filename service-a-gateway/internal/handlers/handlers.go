@@ -569,8 +569,122 @@ func (h *Handler) AnalyzeImageFormHandler(w http.ResponseWriter, r *http.Request
 		strings.ReplaceAll(analysis.Description, "'", "\\'"), analysis.Category, imageURL)
 }
 
+// SearchRequest represents the search form
+type SearchRequest struct {
+	Query string `json:"query"`
+}
+
+type ClipEmbeddingResponse struct {
+	Embedding []float32 `json:"embedding"`
+}
+
+type QdrantSearchRequest struct {
+	Embedding []float32 `json:"embedding"`
+	Limit     int       `json:"limit"`
+}
+
+type QdrantSearchResult struct {
+	ID      string          `json:"id"`
+	Score   float32         `json:"score"`
+	Payload models.LostItem `json:"payload"`
+}
+
+// SemanticSearchHandler handles semantic search requests
+func (h *Handler) SemanticSearchHandler(w http.ResponseWriter, r *http.Request) {
+	query := r.FormValue("query")
+	if query == "" {
+		http.Error(w, "Query is required", http.StatusBadRequest)
+		return
+	}
+
+	// 1. Get Embedding from Clip Service
+	// Assuming Clip Service is at http://clip-service:8000
+	clipResp, err := http.Post(
+		"http://clip-service:8000/embed",
+		"application/json",
+		strings.NewReader(fmt.Sprintf(`{"text": "%s"}`, query)),
+	)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to call Clip Service")
+		http.Error(w, "Search service unavailable (Clip)", http.StatusServiceUnavailable)
+		return
+	}
+	defer clipResp.Body.Close()
+
+	if clipResp.StatusCode != http.StatusOK {
+		log.Error().Int("status", clipResp.StatusCode).Msg("Clip Service returned error")
+		http.Error(w, "Search failed", http.StatusInternalServerError)
+		return
+	}
+
+	var embeddingResp ClipEmbeddingResponse
+	if err := json.NewDecoder(clipResp.Body).Decode(&embeddingResp); err != nil {
+		log.Error().Err(err).Msg("Failed to decode embedding response")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// 2. Search Qdrant
+	// Assuming Qdrant Service is at http://qdrant-service:8081
+	qdrantReqBody, _ := json.Marshal(QdrantSearchRequest{
+		Embedding: embeddingResp.Embedding,
+		Limit:     20,
+	})
+
+	qdrantResp, err := http.Post(
+		"http://qdrant-service:8081/search",
+		"application/json",
+		bytes.NewReader(qdrantReqBody),
+	)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to call Qdrant Service")
+		http.Error(w, "Search service unavailable (Qdrant)", http.StatusServiceUnavailable)
+		return
+	}
+	defer qdrantResp.Body.Close()
+
+	var searchResults []QdrantSearchResult
+	if err := json.NewDecoder(qdrantResp.Body).Decode(&searchResults); err != nil {
+		log.Error().Err(err).Msg("Failed to decode search results")
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	// 3. Render Results
+	// Map results to LostItem model
+	var items []*models.LostItem
+	for _, res := range searchResults {
+		// Use payload from Qdrant directly, or better: fetch from Postgres to be sure?
+		// Payload in Qdrant might be partial. But for now it's fine.
+		// Actually, let's fetch from DB using ID to get full consistent state
+		if item, exists := h.items.Get(res.ID); exists {
+			items = append(items, item)
+		}
+	}
+
+	data := map[string]interface{}{
+		"Title": "Wyniki wyszukiwania: " + query,
+		"Items": items,
+		"Query": query,
+	}
+
+	tmpl, ok := h.templates["browse.html"]
+	if !ok {
+		http.Error(w, "Template not found", http.StatusInternalServerError)
+		return
+	}
+
+	if r.Header.Get("HX-Request") == "true" {
+		tmpl.ExecuteTemplate(w, "items-list", data)
+		return
+	}
+
+	tmpl.ExecuteTemplate(w, "base.html", data)
+}
+
 // HealthCheckHandler returns health status
 func (h *Handler) HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	// ... existing content ...
 	ctx := r.Context()
 
 	health := map[string]interface{}{

@@ -85,6 +85,22 @@ func main() {
 	}
 	log.Info().Msg("Postgres storage initialized")
 
+	log.Info().Msg("Initializing RabbitMQ consumer...")
+	rabbitMQConsumer, err := services.NewRabbitMQConsumer(
+		config.RabbitMQURL,
+		config.RabbitMQExchange,
+		itemStorage,
+	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize RabbitMQ consumer")
+	}
+	defer rabbitMQConsumer.Close()
+
+	if err := rabbitMQConsumer.Start(); err != nil {
+		log.Fatal().Err(err).Msg("Failed to start RabbitMQ consumer")
+	}
+	log.Info().Msg("RabbitMQ consumer initialized and started")
+
 	log.Info().Msg("Initializing HTTP handlers...")
 	handler, err := handlers.NewHandler(
 		config.TemplatesPath,
@@ -218,6 +234,7 @@ func setupRouter(h *handlers.Handler, staticPath string) *mux.Router {
 	r.HandleFunc("/create", h.CreateHandler).Methods("POST")
 	r.HandleFunc("/browse", h.BrowseHandler).Methods("GET")
 	r.HandleFunc("/zguba/{id}", h.ItemDetailHandler).Methods("GET")
+	r.HandleFunc("/search/semantic", h.SemanticSearchHandler).Methods("POST")
 
 	// API routes
 	api := r.PathPrefix("/api").Subrouter()
