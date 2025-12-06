@@ -31,7 +31,16 @@ const (
 // QueueName defines queue names for different purposes
 type QueueName string
 
+// Exchange and routing key constants
 const (
+	ExchangeLostFound    = "lost-found.events"
+	RoutingKeySubmitted  = "item.submitted"
+	RoutingKeyVectorized = "item.vectorized"
+)
+
+const (
+	QueueLostItemsIngest   QueueName = "q.lost-items.ingest"
+	QueueLostItemsPublish  QueueName = "q.lost-items.publish"
 	QueueEmbeddingRequests QueueName = "embedding_requests"
 	QueueVectorIndexing    QueueName = "vector_indexing"
 	QueueNotifications     QueueName = "notifications"
@@ -123,8 +132,29 @@ func (h *RabbitMQHandler) Close() error {
 	return nil
 }
 
-// SetupQueues declares all necessary queues
+// SetupQueues declares all necessary queues and exchanges
 func (h *RabbitMQHandler) SetupQueues() error {
+	// Declare the topic exchange
+	if err := h.DeclareExchange(ExchangeLostFound, "topic", true); err != nil {
+		return err
+	}
+
+	// Declare queues for the new pattern
+	if err := h.DeclareQueue(QueueLostItemsIngest, true, false); err != nil {
+		return err
+	}
+	if err := h.BindQueue(QueueLostItemsIngest, ExchangeLostFound, RoutingKeySubmitted); err != nil {
+		return err
+	}
+
+	if err := h.DeclareQueue(QueueLostItemsPublish, true, false); err != nil {
+		return err
+	}
+	if err := h.BindQueue(QueueLostItemsPublish, ExchangeLostFound, RoutingKeyVectorized); err != nil {
+		return err
+	}
+
+	// Keep backward compatibility with old queues
 	queues := []QueueName{
 		QueueEmbeddingRequests,
 		QueueVectorIndexing,
@@ -138,6 +168,40 @@ func (h *RabbitMQHandler) SetupQueues() error {
 		}
 	}
 
+	return nil
+}
+
+// DeclareExchange declares an exchange
+func (h *RabbitMQHandler) DeclareExchange(exchangeName, exchangeType string, durable bool) error {
+	err := h.channel.ExchangeDeclare(
+		exchangeName, // name
+		exchangeType, // type (direct, fanout, topic, headers)
+		durable,      // durable
+		false,        // auto-deleted
+		false,        // internal
+		false,        // no-wait
+		nil,          // arguments
+	)
+	if err != nil {
+		return fmt.Errorf("failed to declare exchange %s: %w", exchangeName, err)
+	}
+	log.Printf("Exchange '%s' declared successfully", exchangeName)
+	return nil
+}
+
+// BindQueue binds a queue to an exchange with a routing key
+func (h *RabbitMQHandler) BindQueue(queueName QueueName, exchangeName, routingKey string) error {
+	err := h.channel.QueueBind(
+		string(queueName), // queue name
+		routingKey,        // routing key
+		exchangeName,      // exchange
+		false,             // no-wait
+		nil,               // arguments
+	)
+	if err != nil {
+		return fmt.Errorf("failed to bind queue %s to exchange %s: %w", queueName, exchangeName, err)
+	}
+	log.Printf("Queue '%s' bound to exchange '%s' with routing key '%s'", queueName, exchangeName, routingKey)
 	return nil
 }
 
@@ -188,6 +252,36 @@ func (h *RabbitMQHandler) PublishMessage(ctx context.Context, queueName QueueNam
 	return nil
 }
 
+// PublishToExchange publishes a message to an exchange with a routing key
+func (h *RabbitMQHandler) PublishToExchange(ctx context.Context, exchangeName, routingKey string, message Message) error {
+	body, err := json.Marshal(message)
+	if err != nil {
+		return fmt.Errorf("failed to marshal message: %w", err)
+	}
+
+	err = h.channel.PublishWithContext(
+		ctx,
+		exchangeName, // exchange
+		routingKey,   // routing key
+		false,        // mandatory
+		false,        // immediate
+		amqp.Publishing{
+			ContentType:  "application/json",
+			Body:         body,
+			DeliveryMode: amqp.Persistent,
+			Priority:     message.Priority,
+			Timestamp:    message.Timestamp,
+		},
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to publish to exchange: %w", err)
+	}
+
+	log.Printf("Published message type '%s' to exchange '%s' with routing key '%s'", message.Type, exchangeName, routingKey)
+	return nil
+}
+
 // GetQueueStats returns statistics about a queue
 func (h *RabbitMQHandler) GetQueueStats(queueName QueueName) (messages, consumers int, err error) {
 	queue, err := h.channel.QueueInspect(string(queueName))
@@ -223,6 +317,25 @@ func (h *RabbitMQHandler) PublishEmbeddingRequest(ctx context.Context, req Embed
 	}
 
 	return h.PublishMessage(ctx, QueueEmbeddingRequests, message)
+}
+
+// PublishItemSubmitted publishes an item.submitted event to the exchange
+// This represents a new lost item submission from Service A (Gateway)
+func (h *RabbitMQHandler) PublishItemSubmitted(ctx context.Context, req EmbeddingRequest) error {
+	message := Message{
+		ID:        req.ItemID,
+		Type:      MessageTypeNewItem,
+		Timestamp: time.Now(),
+		Data: map[string]interface{}{
+			"item_id":     req.ItemID,
+			"text":        req.Text,
+			"description": req.Description,
+			"category":    req.Category,
+		},
+		Priority: 5,
+	}
+
+	return h.PublishToExchange(ctx, ExchangeLostFound, RoutingKeySubmitted, message)
 }
 
 // PublishVectorIndexRequest publishes a vector indexing request to the queue

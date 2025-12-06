@@ -138,8 +138,8 @@ func (e *EventEmulator) EmitNewItemEvent(ctx context.Context) error {
 		Category:    categories[rand.Intn(len(categories))],
 	}
 
-	log.Printf("📝 Emitting NEW ITEM event: %s", req.Text)
-	return e.rabbitMQ.PublishEmbeddingRequest(ctx, req)
+	log.Printf("📝 Emitting NEW ITEM event (item.submitted): %s", req.Text)
+	return e.rabbitMQ.PublishItemSubmitted(ctx, req)
 }
 
 // EmitVectorIndexEvent simulates a vector being ready for indexing
@@ -288,6 +288,8 @@ func (e *EventEmulator) RunContinuous(ctx context.Context, minDelay, maxDelay ti
 // ShowQueueStats displays statistics for all queues
 func (e *EventEmulator) ShowQueueStats() error {
 	queues := []QueueName{
+		QueueLostItemsIngest,
+		QueueLostItemsPublish,
 		QueueEmbeddingRequests,
 		QueueVectorIndexing,
 		QueueNotifications,
@@ -395,6 +397,8 @@ func (e *EventEmulator) EmitCustomMessage(ctx context.Context, queueName QueueNa
 // PurgeAllQueues clears all messages from all queues
 func (e *EventEmulator) PurgeAllQueues() error {
 	queues := []QueueName{
+		QueueLostItemsIngest,
+		QueueLostItemsPublish,
 		QueueEmbeddingRequests,
 		QueueVectorIndexing,
 		QueueNotifications,

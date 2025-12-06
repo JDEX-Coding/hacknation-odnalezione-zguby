@@ -31,7 +31,16 @@ const (
 // QueueName defines queue names for different purposes
 type QueueName string
 
+// Exchange and routing key constants
 const (
+	ExchangeLostFound    = "lost-found.events"
+	RoutingKeySubmitted  = "item.submitted"
+	RoutingKeyVectorized = "item.vectorized"
+)
+
+const (
+	QueueLostItemsIngest   QueueName = "q.lost-items.ingest"
+	QueueLostItemsPublish  QueueName = "q.lost-items.publish"
 	QueueEmbeddingRequests QueueName = "embedding_requests"
 	QueueVectorIndexing    QueueName = "vector_indexing"
 	QueueNotifications     QueueName = "notifications"
@@ -356,8 +365,49 @@ func (h *RabbitMQHandler) PublishNotification(ctx context.Context, notification 
 	return h.PublishMessage(ctx, QueueNotifications, message)
 }
 
-// SetupQueues declares all necessary queues for the application
+// PublishItemVectorized publishes an item.vectorized event to the exchange
+// This represents an item that has been enriched with vector embeddings
+func (h *RabbitMQHandler) PublishItemVectorized(ctx context.Context, itemID string, vectorID uint64, payload map[string]interface{}) error {
+	data := map[string]interface{}{
+		"item_id":   itemID,
+		"vector_id": vectorID,
+		"payload":   payload,
+	}
+
+	message := Message{
+		ID:        fmt.Sprintf("vec_%s_%d", itemID, time.Now().Unix()),
+		Type:      MessageTypeNewItem,
+		Timestamp: time.Now(),
+		Data:      data,
+		Priority:  7,
+	}
+
+	return h.PublishToExchange(ctx, ExchangeLostFound, RoutingKeyVectorized, message)
+}
+
+// SetupQueues declares all necessary queues and exchanges for the application
 func (h *RabbitMQHandler) SetupQueues() error {
+	// Declare the topic exchange
+	if err := h.DeclareExchange(ExchangeLostFound, "topic", true); err != nil {
+		return err
+	}
+
+	// Declare queues for the new pattern
+	if err := h.DeclareQueue(QueueLostItemsIngest, true, false); err != nil {
+		return err
+	}
+	if err := h.BindQueue(QueueLostItemsIngest, ExchangeLostFound, RoutingKeySubmitted); err != nil {
+		return err
+	}
+
+	if err := h.DeclareQueue(QueueLostItemsPublish, true, false); err != nil {
+		return err
+	}
+	if err := h.BindQueue(QueueLostItemsPublish, ExchangeLostFound, RoutingKeyVectorized); err != nil {
+		return err
+	}
+
+	// Keep backward compatibility with old queues
 	queues := []struct {
 		name       QueueName
 		durable    bool
