@@ -1,6 +1,28 @@
 version: '3.8'
 
 services:
+  clip-service:
+    container_name: odnalezione-clip-service
+    build:
+      context: ./clip-service
+      dockerfile: Dockerfile
+    environment:
+      - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672/
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin123
+      - MINIO_BUCKET_NAME=lost-items-images
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - odnalezione-network
+    volumes:
+      - clip_cache:/app/.cache/huggingface
+
   qdrant-service:
     container_name: odnalezione-qdrant-service
     build:
@@ -39,7 +61,7 @@ services:
     container_name: odnalezione-rabbitmq
     ports:
       - "5672:5672"
-      - "15672:15672" # Management UI
+      - "15673:15673" # Management UI
     environment:
       RABBITMQ_DEFAULT_USER: admin
       RABBITMQ_DEFAULT_PASS: admin123
@@ -102,6 +124,8 @@ volumes:
   qdrant_data:
     driver: local
   minio_data:
+    driver: local
+  clip_cache:
     driver: local
 
 networks:
