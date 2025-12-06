@@ -1,0 +1,25 @@
+# Qdrant Service
+*.exe
+*.exe~
+tmp/
+bin/
+build-errors.log
+
+# Go
+*.test
+*.out
+go.work
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
