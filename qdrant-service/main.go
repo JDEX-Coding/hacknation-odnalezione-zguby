@@ -87,29 +87,46 @@ func consumeVectorIndexing(rabbitMQ *RabbitMQHandler, qdrant *QdrantHandler) {
 	rabbitMQ.ProcessMessages(msgs, func(msg Message) error {
 		log.Printf("Processing item.submitted for message ID: %s", msg.ID)
 
-		// Extract data from message
-		itemID, ok := msg.Data["item_id"].(string)
+		// Extract data from message - Service A sends ItemSubmittedEvent directly
+		itemID, ok := msg.Data["id"].(string)
 		if !ok {
-			return fmt.Errorf("invalid item_id")
+			return fmt.Errorf("invalid or missing 'id' field")
 		}
 
-		text, _ := msg.Data["text"].(string)
+		title, _ := msg.Data["title"].(string)
 		description, _ := msg.Data["description"].(string)
 		category, _ := msg.Data["category"].(string)
+		location, _ := msg.Data["location"].(string)
+		imageURL, _ := msg.Data["image_url"].(string)
+		contactEmail, _ := msg.Data["contact_email"].(string)
+		contactPhone, _ := msg.Data["contact_phone"].(string)
 
-		log.Printf("Processing submitted item: %s - %s", itemID, text)
+		log.Printf("Processing submitted item: %s - %s", itemID, title)
 
 		// In a real scenario, you would:
 		// 1. Call an embedding service/model to generate embeddings from text
 		// For now, we'll generate a mock embedding
 		embedding := generateMockEmbedding(384)
 
+		// Prepare contact info
+		contactInfo := contactEmail
+		if contactPhone != "" {
+			if contactInfo != "" {
+				contactInfo += ", " + contactPhone
+			} else {
+				contactInfo = contactPhone
+			}
+		}
+
 		// Create payload for Qdrant
 		payload := LostItemPayload{
 			ItemID:      itemID,
-			Title:       text,
+			Title:       title,
 			Description: description,
 			Category:    category,
+			Location:    location,
+			ImageURL:    imageURL,
+			ContactInfo: contactInfo,
 		}
 
 		// Insert into Qdrant
@@ -123,9 +140,12 @@ func consumeVectorIndexing(rabbitMQ *RabbitMQHandler, qdrant *QdrantHandler) {
 
 		// Publish item.vectorized event
 		payloadMap := map[string]interface{}{
-			"title":       text,
-			"description": description,
-			"category":    category,
+			"title":        title,
+			"description":  description,
+			"category":     category,
+			"location":     location,
+			"image_url":    imageURL,
+			"contact_info": contactInfo,
 		}
 
 		if err := rabbitMQ.PublishItemVectorized(ctx, itemID, vectorID, payloadMap); err != nil {

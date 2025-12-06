@@ -20,10 +20,10 @@ Dokumentacja struktur JSON dla wszystkich zdarzeń przesyłanych przez RabbitMQ 
     "description": "Czarny portfel skórzany ze znalezionym dowodem osobistym",
     "category": "Portfele i torby",
     "location": "Warszawa, Rynek Starego Miasta",
-    "found_date": "2024-12-06T10:30:00Z",
-    "image_url": "http://minio:9000/lost-items-images/uploads/2024-12-06/550e8400-e29b-41d4-a716-446655440000.jpg",
+    "found_date": "2025-12-06T10:30:00Z",
+    "image_url": "http://minio:9000/lost-items-images/uploads/2025-12-06/550e8400-e29b-41d4-a716-446655440000.jpg",
     "contact_info": "biuro@urzad.pl",
-    "timestamp": "2024-12-06T10:35:00Z"
+    "timestamp": "2025-12-06T10:35:00Z"
 }
 ```
 
@@ -61,7 +61,7 @@ Dokumentacja struktur JSON dla wszystkich zdarzeń przesyłanych przez RabbitMQ 
     "description": "Czarny portfel skórzany ze znalezionym dowodem osobistym",
     "category": "Portfele i torby",
     "location": "Warszawa, Rynek Starego Miasta",
-    "image_url": "http://minio:9000/lost-items-images/uploads/2024-12-06/550e8400-e29b-41d4-a716-446655440000.jpg",
+    "image_url": "http://minio:9000/lost-items-images/uploads/2025-12-06/550e8400-e29b-41d4-a716-446655440000.jpg",
     "contact_info": "biuro@urzad.pl"
   },
   "vector_embedding": [0.123, 0.456, -0.789, ..., 0.321],
@@ -69,7 +69,7 @@ Dokumentacja struktur JSON dla wszystkich zdarzeń przesyłanych przez RabbitMQ 
   "embedding_model": "CLIP",
   "embedding_dimension": 384,
   "processing_time_ms": 2345,
-  "processed_at": "2024-12-06T10:37:00Z"
+  "processed_at": "2025-12-06T10:37:00Z"
 }
 ```
 
@@ -100,14 +100,14 @@ Dokumentacja struktur JSON dla wszystkich zdarzeń przesyłanych przez RabbitMQ 
     "id_ewidencyjny": "550e8400-e29b-41d4-a716-446655440000",
     "nazwa_przedmiotu": "Portfel czarny skórzany",
     "kategoria": "Portfele i torby",
-    "data_znalezienia": "2024-12-06",
+    "data_znalezienia": "2025-12-06",
     "miejsce_gmina": "Warszawa",
     "miejsce_opis": "Rynek Starego Miasta (bez dokładnych koordynatów)",
     "cechy_szczegolne": "Czarny portfel skórzany ze znalezionym dowodem osobistym",
     "jednostka_zglaszajaca": "Odnalezione Zguby v1",
-    "link_do_zdjecia": "http://minio:9000/lost-items-images/uploads/2024-12-06/550e8400-e29b-41d4-a716-446655440000.jpg",
+    "link_do_zdjecia": "http://minio:9000/lost-items-images/uploads/2025-12-06/550e8400-e29b-41d4-a716-446655440000.jpg",
     "status": "Do odbioru",
-    "data_publikacji": "2024-12-06T10:37:00Z"
+    "data_publikacji": "2025-12-06T10:37:00Z"
 }
 ```
 
@@ -166,7 +166,7 @@ title: "Portfel"
 description: "Czarny portfel ze złotą klamrą"
 category: "Portfele i torby"
 location: "Rynek Starego Miasta"
-found_date: "2024-12-06"
+found_date: "2025-12-06"
 image: <binary>
 contact_info: "biuro@urzad.pl"
 ```
@@ -180,10 +180,10 @@ contact_info: "biuro@urzad.pl"
     "description": "Czarny portfel ze złotą klamrą",
     "category": "Portfele i torby",
     "location": "Rynek Starego Miasta",
-    "found_date": "2024-12-06T00:00:00Z",
-    "image_url": "http://minio:9000/lost-items-images/uploads/2024-12-06/550e8400-e29b-41d4-a716-446655440000.jpg",
+    "found_date": "2025-12-06T00:00:00Z",
+    "image_url": "http://minio:9000/lost-items-images/uploads/2025-12-06/550e8400-e29b-41d4-a716-446655440000.jpg",
     "contact_info": "biuro@urzad.pl",
-    "timestamp": "2024-12-06T10:35:00Z"
+    "timestamp": "2025-12-06T10:35:00Z"
 }
 ```
 
@@ -199,7 +199,7 @@ contact_info: "biuro@urzad.pl"
   "embedding_model": "CLIP",
   "embedding_dimension": 384,
   "processing_time_ms": 2345,
-  "processed_at": "2024-12-06T10:37:00Z"
+  "processed_at": "2025-12-06T10:37:00Z"
 }
 ```
 
@@ -214,14 +214,14 @@ Content-Type: application/json
   "id_ewidencyjny": "550e8400-e29b-41d4-a716-446655440000",
   "nazwa_przedmiotu": "Portfel czarny skórzany",
   "kategoria": "Portfele i torby",
-  "data_znalezienia": "2024-12-06",
+  "data_znalezienia": "2025-12-06",
   "miejsce_gmina": "Warszawa",
   "miejsce_opis": "Rynek Starego Miasta",
   "cechy_szczegolne": "Czarny portfel ze złotą klamrą",
   "jednostka_zglaszajaca": "Odnalezione Zguby v1",
-  "link_do_zdjecia": "http://minio:9000/lost-items-images/uploads/2024-12-06/550e8400-e29b-41d4-a716-446655440000.jpg",
+  "link_do_zdjecia": "http://minio:9000/lost-items-images/uploads/2025-12-06/550e8400-e29b-41d4-a716-446655440000.jpg",
   "status": "Do odbioru",
-  "data_publikacji": "2024-12-06T10:37:00Z"
+  "data_publikacji": "2025-12-06T10:37:00Z"
 }
 ```
 

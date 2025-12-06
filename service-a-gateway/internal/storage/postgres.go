@@ -48,9 +48,16 @@ func (s *PostgresStorage) Init() error {
 		image_url TEXT,
 		status VARCHAR(50),
 		contact_info TEXT,
+		reporting_date TIMESTAMP,
+		reporting_location TEXT,
 		created_at TIMESTAMP,
 		updated_at TIMESTAMP
-	);`
+	);
+
+	ALTER TABLE lost_items ADD COLUMN IF NOT EXISTS reporting_date TIMESTAMP;
+	ALTER TABLE lost_items ADD COLUMN IF NOT EXISTS reporting_location TEXT;
+	ALTER TABLE lost_items ADD COLUMN IF NOT EXISTS contact_email TEXT;
+	ALTER TABLE lost_items ADD COLUMN IF NOT EXISTS contact_phone TEXT;`
 
 	_, err := s.db.Exec(query)
 	return err
@@ -60,18 +67,22 @@ func (s *PostgresStorage) Save(item *models.LostItem) error {
 	query := `
 	INSERT INTO lost_items (
 		id, title, description, category, location, found_date,
-		image_url, status, contact_info, created_at, updated_at
+		reporting_date, reporting_location,
+		image_url, status, contact_email, contact_phone, created_at, updated_at
 	) VALUES (
-		$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+		$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
 	) ON CONFLICT (id) DO UPDATE SET
 		title = EXCLUDED.title,
 		description = EXCLUDED.description,
 		category = EXCLUDED.category,
 		location = EXCLUDED.location,
 		found_date = EXCLUDED.found_date,
+		reporting_date = EXCLUDED.reporting_date,
+		reporting_location = EXCLUDED.reporting_location,
 		image_url = EXCLUDED.image_url,
 		status = EXCLUDED.status,
-		contact_info = EXCLUDED.contact_info,
+		contact_email = EXCLUDED.contact_email,
+		contact_phone = EXCLUDED.contact_phone,
 		updated_at = EXCLUDED.updated_at
 	;`
 
@@ -83,7 +94,8 @@ func (s *PostgresStorage) Save(item *models.LostItem) error {
 
 	_, err := s.db.Exec(query,
 		item.ID, item.Title, item.Description, item.Category, item.Location,
-		item.FoundDate, item.ImageURL, item.Status, item.ContactInfo,
+		item.FoundDate, item.ReportingDate, item.ReportingLocation,
+		item.ImageURL, item.Status, item.ContactEmail, item.ContactPhone,
 		item.CreatedAt, item.UpdatedAt,
 	)
 
@@ -99,13 +111,15 @@ func (s *PostgresStorage) Save(item *models.LostItem) error {
 func (s *PostgresStorage) Get(id string) (*models.LostItem, bool) {
 	query := `
 	SELECT id, title, description, category, location, found_date,
-		   image_url, status, contact_info, created_at, updated_at
+		   reporting_date, reporting_location,
+		   image_url, status, contact_email, contact_phone, created_at, updated_at
 	FROM lost_items WHERE id = $1`
 
 	item := &models.LostItem{}
 	err := s.db.QueryRow(query, id).Scan(
 		&item.ID, &item.Title, &item.Description, &item.Category, &item.Location,
-		&item.FoundDate, &item.ImageURL, &item.Status, &item.ContactInfo,
+		&item.FoundDate, &item.ReportingDate, &item.ReportingLocation,
+		&item.ImageURL, &item.Status, &item.ContactEmail, &item.ContactPhone,
 		&item.CreatedAt, &item.UpdatedAt,
 	)
 
@@ -124,7 +138,8 @@ func (s *PostgresStorage) Get(id string) (*models.LostItem, bool) {
 func (s *PostgresStorage) List() ([]*models.LostItem, error) {
 	query := `
 	SELECT id, title, description, category, location, found_date,
-		   image_url, status, contact_info, created_at, updated_at
+		   reporting_date, reporting_location,
+		   image_url, status, contact_email, contact_phone, created_at, updated_at
 	FROM lost_items
 	ORDER BY created_at DESC`
 
@@ -139,7 +154,8 @@ func (s *PostgresStorage) List() ([]*models.LostItem, error) {
 		item := &models.LostItem{}
 		err := rows.Scan(
 			&item.ID, &item.Title, &item.Description, &item.Category, &item.Location,
-			&item.FoundDate, &item.ImageURL, &item.Status, &item.ContactInfo,
+			&item.FoundDate, &item.ReportingDate, &item.ReportingLocation,
+			&item.ImageURL, &item.Status, &item.ContactEmail, &item.ContactPhone,
 			&item.CreatedAt, &item.UpdatedAt,
 		)
 		if err != nil {

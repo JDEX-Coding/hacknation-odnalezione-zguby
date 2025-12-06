@@ -49,10 +49,10 @@ auto_delete: false
     "description": "Czarny portfel skórzany ze znalezionym dowód osobistym",
     "category": "Portfele i torby",
     "location": "Warszawa, Rynek Starego Miasta",
-    "found_date": "2024-12-06T10:30:00Z",
-    "image_url": "http://minio:9000/lost-items-images/uploads/2024-12-06/uuid.jpg",
+    "found_date": "2025-12-06T10:30:00Z",
+    "image_url": "http://minio:9000/lost-items-images/uploads/2025-12-06/uuid.jpg",
     "contact_info": "biuro@urzad.pl",
-    "timestamp": "2024-12-06T10:35:00Z"
+    "timestamp": "2025-12-06T10:35:00Z"
 }
 ```
 
@@ -70,13 +70,13 @@ auto_delete: false
     "description": "Czarny portfel skórzany...",
     "category": "Portfele i torby",
     "location": "Warszawa, Rynek Starego Miasta",
-    "image_url": "http://minio:9000/lost-items-images/uploads/2024-12-06/uuid.jpg",
+    "image_url": "http://minio:9000/lost-items-images/uploads/2025-12-06/uuid.jpg",
     "contact_info": "biuro@urzad.pl"
   },
   "vector_embedding": [0.123, 0.456, ..., 0.789],  // 384-dim CLIP embedding
   "vector_id": "qdrant-vector-id",
   "processing_time_ms": 2345,
-  "processed_at": "2024-12-06T10:37:00Z"
+  "processed_at": "2025-12-06T10:37:00Z"
 }
 ```
 

@@ -6,40 +6,47 @@ import (
 
 // LostItem represents a lost item entry
 type LostItem struct {
-	ID          string    `json:"id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Category    string    `json:"category"`
-	Location    string    `json:"location"`
-	FoundDate   time.Time `json:"found_date"`
-	ImageURL    string    `json:"image_url"`
-	Status      string    `json:"status"` // pending, published, archived
-	ContactInfo string    `json:"contact_info"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID                string    `json:"id"`
+	Title             string    `json:"title"`
+	Description       string    `json:"description"`
+	Category          string    `json:"category"`
+	Location          string    `json:"location"`
+	FoundDate         time.Time `json:"found_date"`
+	ReportingDate     time.Time `json:"reporting_date"`
+	ReportingLocation string    `json:"reporting_location"`
+	ImageURL          string    `json:"image_url"`
+	Status            string    `json:"status"` // pending, published, archived
+	ContactEmail      string    `json:"contact_email"`
+	ContactPhone      string    `json:"contact_phone"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
 }
 
 // CreateLostItemRequest represents the form data for creating a lost item
 type CreateLostItemRequest struct {
-	Title       string `json:"title" form:"title"`
-	Description string `json:"description" form:"description"`
-	Category    string `json:"category" form:"category"`
-	Location    string `json:"location" form:"location"`
-	FoundDate   string `json:"found_date" form:"found_date"`
-	ContactInfo string `json:"contact_info" form:"contact_info"`
+	Title        string `json:"title" form:"title"`
+	Description  string `json:"description" form:"description"`
+	Category     string `json:"category" form:"category"`
+	Location     string `json:"location" form:"location"`
+	FoundDate    string `json:"found_date" form:"found_date"`
+	ContactEmail string `json:"contact_email" form:"contact_email"`
+	ContactPhone string `json:"contact_phone" form:"contact_phone"`
 }
 
 // ItemSubmittedEvent represents the event published to RabbitMQ
 type ItemSubmittedEvent struct {
-	ID          string    `json:"id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Category    string    `json:"category"`
-	Location    string    `json:"location"`
-	FoundDate   time.Time `json:"found_date"`
-	ImageURL    string    `json:"image_url"`
-	ContactInfo string    `json:"contact_info"`
-	Timestamp   time.Time `json:"timestamp"`
+	ID                string    `json:"id"`
+	Title             string    `json:"title"`
+	Description       string    `json:"description"`
+	Category          string    `json:"category"`
+	Location          string    `json:"location"`
+	FoundDate         time.Time `json:"found_date"`
+	ReportingDate     time.Time `json:"reporting_date"`
+	ReportingLocation string    `json:"reporting_location"`
+	ImageURL          string    `json:"image_url"`
+	ContactEmail      string    `json:"contact_email"`
+	ContactPhone      string    `json:"contact_phone"`
+	Timestamp         time.Time `json:"timestamp"`
 }
 
 // Category options
@@ -51,7 +58,6 @@ var Categories = []string{
 	"Portfele i torby",
 	"Klucze",
 	"Telefony",
-	"Zwierzęta",
 	"Inne",
 }
 

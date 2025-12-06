@@ -20,7 +20,9 @@
         >
             <!-- Image Upload Section -->
             <div
-                class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors"
+                id="upload-zone"
+                class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors cursor-pointer"
+                onclick="document.getElementById('image').click()"
             >
                 <div class="space-y-4">
                     <div
@@ -42,15 +44,13 @@
                     </div>
 
                     <div>
-                        <label for="image" class="cursor-pointer">
-                            <span
-                                class="text-blue-600 hover:text-blue-700 font-medium"
-                                >Wybierz zdjęcie</span
-                            >
-                            <span class="text-gray-600">
-                                lub przeciągnij i upuść</span
-                            >
-                        </label>
+                        <span
+                            class="text-blue-600 hover:text-blue-700 font-medium"
+                            >Kliknij aby wybrać zdjęcie</span
+                        >
+                        <span class="text-gray-600">
+                            lub przeciągnij i upuść</span
+                        >
                         <input
                             type="file"
                             id="image"
@@ -66,7 +66,11 @@
                     </div>
 
                     <!-- Image Preview -->
-                    <div id="image-preview" class="hidden mt-4">
+                    <div
+                        id="image-preview"
+                        class="hidden mt-4"
+                        onclick="event.stopPropagation()"
+                    >
                         <img
                             id="preview-img"
                             class="mx-auto max-h-64 rounded-lg shadow-lg"
@@ -74,7 +78,7 @@
                         />
                         <button
                             type="button"
-                            onclick="clearImage()"
+                            onclick="clearImage(); event.stopPropagation();"
                             class="mt-3 text-sm text-red-600 hover:text-red-800"
                         >
                             Usuń zdjęcie
@@ -82,10 +86,14 @@
                     </div>
 
                     <!-- AI Analysis Button -->
-                    <div id="analyze-section" class="hidden">
+                    <div
+                        id="analyze-section"
+                        class="hidden"
+                        onclick="event.stopPropagation()"
+                    >
                         <button
                             type="button"
-                            onclick="analyzeImage()"
+                            onclick="analyzeImage(); event.stopPropagation();"
                             class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors inline-flex items-center"
                         >
                             <svg
@@ -178,62 +186,126 @@
                 </select>
             </div>
 
-            <!-- Location -->
-            <div>
-                <label
-                    for="location"
-                    class="block text-sm font-semibold text-gray-700 mb-2"
-                >
-                    Miejsce znalezienia <span class="text-red-500">*</span>
-                </label>
-                <input
-                    type="text"
-                    id="location"
-                    name="location"
-                    required
-                    placeholder="np. Rynek Główny, Kraków"
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
-                <p class="mt-1 text-sm text-gray-500">
-                    Podaj dokładną lokalizację
-                </p>
-            </div>
+            <!-- Location Section -->
+            <div
+                class="space-y-6 bg-gray-50 p-6 rounded-lg border border-gray-200"
+            >
+                <h3 class="text-lg font-semibold text-gray-900">
+                    Miejsce i data znalezienia
+                </h3>
 
-            <!-- Found Date -->
-            <div>
-                <label
-                    for="found_date"
-                    class="block text-sm font-semibold text-gray-700 mb-2"
-                >
-                    Data znalezienia <span class="text-red-500">*</span>
-                </label>
-                <input
-                    type="date"
-                    id="found_date"
-                    name="found_date"
-                    required
-                    max="{{.Today}}"
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
+                <!-- Found Location -->
+                <div>
+                    <label
+                        for="location"
+                        class="block text-sm font-semibold text-gray-700 mb-2"
+                    >
+                        Miejsce znalezienia <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        id="location"
+                        name="location"
+                        required
+                        placeholder="np. Rynek Główny, Kraków"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    />
+                    <p class="mt-1 text-sm text-gray-500">
+                        Podaj dokładną lokalizację
+                    </p>
+                </div>
+
+                <!-- Found Date -->
+                <div>
+                    <label
+                        for="found_date"
+                        class="block text-sm font-semibold text-gray-700 mb-2"
+                    >
+                        Data znalezienia <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="date"
+                        id="found_date"
+                        name="found_date"
+                        required
+                        max="{{.Today}}"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    />
+                </div>
+
+                <!-- Reporting Date -->
+                <div>
+                    <label
+                        for="reporting_date"
+                        class="block text-sm font-semibold text-gray-700 mb-2"
+                    >
+                        Data zgłoszenia <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="date"
+                        id="reporting_date"
+                        name="reporting_date"
+                        required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all bg-gray-100"
+                        readonly
+                    />
+                </div>
+
+                <!-- Reporting Location -->
+                <div>
+                    <label
+                        for="reporting_location"
+                        class="block text-sm font-semibold text-gray-700 mb-2"
+                    >
+                        Miejsce zgłoszenia
+                    </label>
+                    <input
+                        type="text"
+                        id="reporting_location"
+                        name="reporting_location"
+                        value="Bydgoskie Biuro Rzeczy Znalezionych, ul. Jezuicka 6a/2a"
+                        placeholder="np. Komisariat Policji nr 1"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    />
+                </div>
             </div>
 
             <!-- Contact Info -->
             <div>
-                <label
-                    for="contact_info"
-                    class="block text-sm font-semibold text-gray-700 mb-2"
-                >
-                    Informacje kontaktowe
-                </label>
-                <input
-                    type="text"
-                    id="contact_info"
-                    name="contact_info"
-                    placeholder="np. biuro@urzad.pl, tel. 123-456-789"
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label
+                            for="contact_email"
+                            class="block text-sm font-semibold text-gray-700 mb-2"
+                        >
+                            Email
+                        </label>
+                        <input
+                            type="email"
+                            id="contact_email"
+                            name="contact_email"
+                            value="znalezione@um.bydgoszcz.pl"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        />
+                    </div>
+                    <div>
+                        <label
+                            for="contact_phone"
+                            class="block text-sm font-semibold text-gray-700 mb-2"
+                        >
+                            Telefon
+                        </label>
+                        <input
+                            type="text"
+                            id="contact_phone"
+                            name="contact_phone"
+                            value="(52) 58 58 087"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                        />
+                    </div>
+                </div>
                 <p class="mt-1 text-sm text-gray-500">
-                    Opcjonalnie - dla osób szukających swoich rzeczy
+                    Dane kontaktowe do biura
                 </p>
             </div>
 
@@ -279,10 +351,17 @@
 </div>
 
 <script>
-    // Set today's date as max
-    document.getElementById("found_date").max = new Date()
-        .toISOString()
-        .split("T")[0];
+    // Set today's date
+    const today = new Date().toISOString().split("T")[0];
+
+    // Set max date for found_date
+    const foundDateInput = document.getElementById("found_date");
+    foundDateInput.max = today;
+    foundDateInput.value = today; // Auto-fill found date
+
+    // Auto-fill reporting date
+    const reportingDateInput = document.getElementById("reporting_date");
+    reportingDateInput.value = today;
 
     // Handle image upload preview
     function handleImageUpload(input) {
@@ -375,6 +454,9 @@
             return;
         }
 
+        const escapedTitle = (data.title || "")
+            .replace(/'/g, "\\'")
+            .replace(/"/g, "&quot;");
         const escapedDescription = data.description
             .replace(/'/g, "\\'")
             .replace(/"/g, "&quot;");
@@ -388,8 +470,17 @@
                         </svg>
                     </div>
                     <div class="flex-1">
-                        <h3 class="font-semibold text-purple-900 mb-2">✨ Sugestia AI</h3>
-                        <p class="text-gray-800 leading-relaxed mb-3">${data.description}</p>
+                        <h3 class="font-semibold text-purple-900 mb-3">✨ Sugestia AI</h3>
+                        <div class="space-y-2 mb-3">
+                            <div>
+                                <span class="text-sm font-medium text-gray-600">Tytuł:</span>
+                                <p class="text-gray-900 font-medium">${data.title}</p>
+                            </div>
+                            <div>
+                                <span class="text-sm font-medium text-gray-600">Opis:</span>
+                                <p class="text-gray-800 leading-relaxed">${data.description}</p>
+                            </div>
+                        </div>
                         <div class="flex flex-wrap items-center gap-3 text-sm">
                             <div class="flex items-center gap-2">
                                 <span class="font-medium text-gray-700">Kategoria:</span>
@@ -404,7 +495,7 @@
                 </div>
                 <button
                     type="button"
-                    onclick="applyAISuggestion('${escapedDescription}', '${data.category}')"
+                    onclick="applyAISuggestion('${escapedTitle}', '${escapedDescription}', '${data.category}')"
                     class="w-full mt-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
                 >
                     ✓ Użyj tej sugestii
@@ -417,7 +508,8 @@
     }
 
     // Apply AI suggestion to form
-    function applyAISuggestion(description, category) {
+    function applyAISuggestion(title, description, category) {
+        document.getElementById("title").value = title;
         document.getElementById("description").value = description;
         document.getElementById("category").value = category;
 
@@ -431,9 +523,9 @@
             </div>
         `;
 
-        // Scroll to description field
+        // Scroll to title field
         document
-            .getElementById("description")
+            .getElementById("title")
             .scrollIntoView({ behavior: "smooth", block: "center" });
 
         // Restore original after 2 seconds
@@ -443,7 +535,7 @@
     }
 
     // Drag and drop functionality
-    const dropZone = document.querySelector(".border-dashed");
+    const dropZone = document.getElementById("upload-zone");
 
     ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
         dropZone.addEventListener(eventName, preventDefaults, false);
