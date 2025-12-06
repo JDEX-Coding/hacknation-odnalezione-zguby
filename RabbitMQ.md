@@ -6,8 +6,8 @@ System wykorzystuje **Topic Exchange** o nazwie `lost-found.events`.
 
 | Kolejka (Queue)        | Routing Key       | Nadawca             | Odbiorca       | Opis                                                        |
 | ---------------------- | ----------------- | ------------------- | -------------- | ----------------------------------------------------------- |
-| `q.lost-items.embed`  | `item.submitted`  | Service A (Gateway) | Clip Service | Surowe dane zgłoszenia (text, description, category)        |
-| `q.lost-items.injest` | `item.embedded` | Clip Service      | Qdrant Service      | Dane są zembbedowane i gotowe do zapisu w Qdrant |
+| `q.lost-items.embed`  | `item.submitted`  | Service A (Gateway) | Clip Service | Surowe dane zgłoszenia (description, category)        |
+| `q.lost-items.injgst` | `item.embedded` | Clip Service      | Qdrant Service      | Dane są zembbedowane i gotowe do zapisu w Qdrant |
 | `q.lost-items.publish` |`item.vectorized` | Qdrant Service | Service C (Publisher) | Dane z vector_id po zapisie w Qdrant, gotowe do publikacji |
 
 ## Schemat przepływu komunikatów
