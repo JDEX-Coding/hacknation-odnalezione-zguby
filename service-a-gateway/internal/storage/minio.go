@@ -146,20 +146,25 @@ func (s *MinIOStorage) GetImageURL(objectKey string) string {
 
 	var finalURL string
 
-	// If public endpoint already has a scheme, use it
+	// If public endpoint already has a scheme (http:// or https://), use it directly
 	if strings.Contains(cleanEndpoint, "://") {
 		finalURL = fmt.Sprintf("%s/%s/%s", cleanEndpoint, s.bucketName, objectKey)
 	} else {
-		// FORCE HTTPS as requested by user, ignoring useSSL for public URLs
-		finalURL = fmt.Sprintf("https://%s/%s/%s", cleanEndpoint, s.bucketName, objectKey)
+		// Use the useSSL setting to determine protocol
+		protocol := "http"
+		if s.useSSL {
+			protocol = "https"
+		}
+		finalURL = fmt.Sprintf("%s://%s/%s/%s", protocol, cleanEndpoint, s.bucketName, objectKey)
 	}
 
 	log.Debug().
 		Str("object_key", objectKey).
 		Str("original_endpoint", s.publicEndpoint).
 		Str("clean_endpoint", cleanEndpoint).
+		Bool("use_ssl", s.useSSL).
 		Str("generated_url", finalURL).
-		Msg("GetImageURL called (Force HTTPS)")
+		Msg("GetImageURL called")
 
 	return finalURL
 }
