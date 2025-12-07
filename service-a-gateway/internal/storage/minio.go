@@ -68,12 +68,14 @@ func NewMinIOStorage(endpoint, publicEndpoint, accessKey, secretKey, bucketName 
 		} else {
 			log.Info().Msgf("Bucket %s created successfully", bucketName)
 
-			// Set policy to public read
-			policy := fmt.Sprintf(`{"Version": "2012-10-17","Statement": [{"Action": ["s3:GetObject"],"Effect": "Allow","Principal": {"AWS": ["*"]},"Resource": ["arn:aws:s3:::%s/*"],"Sid": ""}]}`, bucketName)
-			if err := minioClient.SetBucketPolicy(ctx, bucketName, policy); err != nil {
-				log.Error().Err(err).Msg("Failed to set bucket policy")
-			}
-		}
+	}
+
+	// Always ensure policy is public read (fixes existing buckets with wrong policy)
+	policy := fmt.Sprintf(`{"Version": "2012-10-17","Statement": [{"Action": ["s3:GetObject"],"Effect": "Allow","Principal": {"AWS": ["*"]},"Resource": ["arn:aws:s3:::%s/*"],"Sid": ""}]}`, bucketName)
+	if err := minioClient.SetBucketPolicy(ctx, bucketName, policy); err != nil {
+		log.Error().Err(err).Msg("Failed to set bucket policy")
+	} else {
+		log.Info().Msg("Verified/Set public bucket policy")
 	}
 
 	log.Info().
