@@ -16,6 +16,7 @@ services:
             - MINIO_PUBLIC_ENDPOINT=${MINIO_PUBLIC_ENDPOINT}
             - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY}
             - MINIO_SECRET_KEY=${MINIO_SECRET_KEY}
+            - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
             - MINIO_USE_SSL=false
             - VISION_API_KEY=${VISION_API_KEY}
             - DB_HOST=postgres

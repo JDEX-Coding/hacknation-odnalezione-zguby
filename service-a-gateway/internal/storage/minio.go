@@ -39,6 +39,9 @@ func NewMinIOStorage(endpoint, publicEndpoint, accessKey, secretKey, bucketName 
 		publicEndpoint = endpoint
 	}
 
+	// Clean public endpoint: strip trailing slash
+	publicEndpoint = strings.TrimSuffix(publicEndpoint, "/")
+
 	storage := &MinIOStorage{
 		client:         minioClient,
 		bucketName:     bucketName,
@@ -51,13 +54,24 @@ func NewMinIOStorage(endpoint, publicEndpoint, accessKey, secretKey, bucketName 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Only verify bucket if we can reach the endpoint (skip if external/unreachable from container)
 	exists, err := minioClient.BucketExists(ctx, bucketName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check bucket existence: %w", err)
-	}
+		log.Warn().Err(err).Msgf("Failed to check bucket existence for %s (will continue)", bucketName)
+	} else if !exists {
+		// Try to create bucket if it doesn't exist
+		err = minioClient.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{})
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to create bucket %s", bucketName)
+		} else {
+			log.Info().Msgf("Bucket %s created successfully", bucketName)
 
-	if !exists {
-		return nil, fmt.Errorf("bucket '%s' does not exist", bucketName)
+			// Set policy to public read
+			policy := fmt.Sprintf(`{"Version": "2012-10-17","Statement": [{"Action": ["s3:GetObject"],"Effect": "Allow","Principal": {"AWS": ["*"]},"Resource": ["arn:aws:s3:::%s/*"],"Sid": ""}]}`, bucketName)
+			if err := minioClient.SetBucketPolicy(ctx, bucketName, policy); err != nil {
+				log.Error().Err(err).Msg("Failed to set bucket policy")
+			}
+		}
 	}
 
 	log.Info().
@@ -90,12 +104,7 @@ func (s *MinIOStorage) UploadImage(ctx context.Context, reader io.Reader, filena
 		return "", "", fmt.Errorf("failed to upload image: %w", err)
 	}
 
-	// Generate public URL
-	protocol := "http"
-	if s.useSSL {
-		protocol = "https"
-	}
-	publicURL := fmt.Sprintf("%s://%s/%s/%s", protocol, s.publicEndpoint, s.bucketName, uniqueFilename)
+	publicURL := s.GetImageURL(uniqueFilename)
 
 	log.Info().
 		Str("filename", filename).
@@ -128,6 +137,12 @@ func (s *MinIOStorage) DeleteImage(ctx context.Context, imageURL string) error {
 
 // GetImageURL returns the public URL for an image
 func (s *MinIOStorage) GetImageURL(objectKey string) string {
+	// If public endpoint already has a scheme (http:// or https://), use it directly
+	if strings.Contains(s.publicEndpoint, "://") {
+		return fmt.Sprintf("%s/%s/%s", s.publicEndpoint, s.bucketName, objectKey)
+	}
+
+	// Otherwise fall back to useSSL setting
 	protocol := "http"
 	if s.useSSL {
 		protocol = "https"
