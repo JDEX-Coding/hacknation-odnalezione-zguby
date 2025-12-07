@@ -67,7 +67,7 @@ func NewMinIOStorage(endpoint, publicEndpoint, accessKey, secretKey, bucketName 
 			log.Error().Err(err).Msgf("Failed to create bucket %s", bucketName)
 		} else {
 			log.Info().Msgf("Bucket %s created successfully", bucketName)
-
+		}
 	}
 
 	// Always ensure policy is public read (fixes existing buckets with wrong policy)
