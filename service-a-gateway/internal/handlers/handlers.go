@@ -282,6 +282,7 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 		ReportingDate:     reportingDate,
 		ReportingLocation: reportingLocation,
 		ImageURL:          imageURL,
+		ImageKey:          imageKey,
 		Status:            "pending",
 		ContactEmail:      contactEmail,
 		ContactPhone:      contactPhone,
@@ -332,12 +333,8 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 
 // fixItemImageURL updates the item's ImageURL based on current MinIO config
 func (h *Handler) fixItemImageURL(item *models.LostItem) {
-	if item.ImageURL == "" {
-		return
-	}
-
 	// If key is missing, try to extract it from the URL
-	if item.ImageKey == "" {
+	if item.ImageKey == "" && item.ImageURL != "" {
 		item.ImageKey = h.storage.GetKeyFromURL(item.ImageURL)
 	}
 
