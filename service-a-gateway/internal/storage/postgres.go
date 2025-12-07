@@ -130,12 +130,12 @@ func (s *PostgresStorage) Get(id string) (*models.LostItem, bool) {
 
 	item := &models.LostItem{}
 	var processedByClip, processedByQdrant, publishedOnDaneGov sql.NullBool
-	var imageKey sql.NullString
+	var imageKey, imageURL sql.NullString
 
 	err := s.db.QueryRow(query, id).Scan(
 		&item.ID, &item.Title, &item.Description, &item.Category, &item.Location,
 		&item.FoundDate, &item.ReportingDate, &item.ReportingLocation,
-		&item.ImageURL, &imageKey, &item.Status, &item.ContactEmail, &item.ContactPhone,
+		&imageURL, &imageKey, &item.Status, &item.ContactEmail, &item.ContactPhone,
 		&processedByClip, &processedByQdrant, &publishedOnDaneGov,
 		&item.CreatedAt, &item.UpdatedAt,
 	)
@@ -148,10 +148,17 @@ func (s *PostgresStorage) Get(id string) (*models.LostItem, bool) {
 		return nil, false
 	}
 
+	item.ImageURL = imageURL.String
 	item.ImageKey = imageKey.String
 	item.ProcessedByClip = processedByClip.Bool
 	item.ProcessedByQdrant = processedByQdrant.Bool
 	item.PublishedOnDaneGov = publishedOnDaneGov.Bool
+
+	log.Debug().
+		Str("id", id).
+		Str("image_url_from_db", item.ImageURL).
+		Str("image_key_from_db", item.ImageKey).
+		Msg("Item retrieved from database")
 
 	return item, true
 }
@@ -177,18 +184,19 @@ func (s *PostgresStorage) List() ([]*models.LostItem, error) {
 	for rows.Next() {
 		item := &models.LostItem{}
 		var processedByClip, processedByQdrant, publishedOnDaneGov sql.NullBool
-		var imageKey sql.NullString
+		var imageKey, imageURL sql.NullString
 
 		err := rows.Scan(
 			&item.ID, &item.Title, &item.Description, &item.Category, &item.Location,
 			&item.FoundDate, &item.ReportingDate, &item.ReportingLocation,
-			&item.ImageURL, &imageKey, &item.Status, &item.ContactEmail, &item.ContactPhone,
+			&imageURL, &imageKey, &item.Status, &item.ContactEmail, &item.ContactPhone,
 			&processedByClip, &processedByQdrant, &publishedOnDaneGov,
 			&item.CreatedAt, &item.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
+		item.ImageURL = imageURL.String
 		item.ImageKey = imageKey.String
 		item.ProcessedByClip = processedByClip.Bool
 		item.ProcessedByQdrant = processedByQdrant.Bool

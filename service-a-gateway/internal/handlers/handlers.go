@@ -40,6 +40,14 @@ func NewHandler(
 ) (*Handler, error) {
 	// Function map for templates
 	funcMap := template.FuncMap{
+		"debugString": func(s string) string {
+			log.Info().
+				Str("value", s).
+				Int("length", len(s)).
+				Str("type", fmt.Sprintf("%T", s)).
+				Msg("Template debugString called")
+			return s
+		},
 		"timeRemaining": func(foundDate time.Time, category string) string {
 			// Documents have special procedure (police/issuer), no 2-year ownership transfer
 			if strings.ToLower(category) == "dokumenty" {
@@ -107,6 +115,9 @@ func NewHandler(
 			// Round up to nearest day
 			days := int(math.Ceil(remaining.Hours() / 24))
 			return days
+		},
+		"safeURL": func(s string) template.URL {
+			return template.URL(s)
 		},
 	}
 
@@ -282,6 +293,7 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 		ReportingDate:     reportingDate,
 		ReportingLocation: reportingLocation,
 		ImageURL:          imageURL,
+		ImageKey:          imageKey,
 		Status:            "pending",
 		ContactEmail:      contactEmail,
 		ContactPhone:      contactPhone,
@@ -332,19 +344,35 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 
 // fixItemImageURL updates the item's ImageURL based on current MinIO config
 func (h *Handler) fixItemImageURL(item *models.LostItem) {
-	if item.ImageURL == "" {
-		return
-	}
+	log.Info().
+		Str("item_id", item.ID).
+		Str("image_url_before", item.ImageURL).
+		Str("image_key_before", item.ImageKey).
+		Msg("fixItemImageURL called")
 
 	// If key is missing, try to extract it from the URL
-	if item.ImageKey == "" {
+	if item.ImageKey == "" && item.ImageURL != "" {
 		item.ImageKey = h.storage.GetKeyFromURL(item.ImageURL)
+		log.Info().
+			Str("item_id", item.ID).
+			Str("extracted_image_key", item.ImageKey).
+			Msg("Extracted image key from URL")
 	}
 
 	// If we have a key (either existed or extracted), regenerate the URL
 	if item.ImageKey != "" {
 		item.ImageURL = h.storage.GetImageURL(item.ImageKey)
+		log.Info().
+			Str("item_id", item.ID).
+			Str("regenerated_image_url", item.ImageURL).
+			Msg("Regenerated image URL from key")
 	}
+
+	log.Info().
+		Str("item_id", item.ID).
+		Str("image_url_after", item.ImageURL).
+		Str("image_key_after", item.ImageKey).
+		Msg("fixItemImageURL completed")
 }
 
 // BrowseHandler shows list of all lost items
@@ -429,8 +457,20 @@ func (h *Handler) ItemDetailHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Info().
+		Str("item_id", item.ID).
+		Str("image_url_before_fix", item.ImageURL).
+		Str("image_key_before_fix", item.ImageKey).
+		Msg("ItemDetailHandler - item retrieved from DB")
+
 	// Fix Image URL for current environment
 	h.fixItemImageURL(item)
+
+	log.Info().
+		Str("item_id", item.ID).
+		Str("image_url_after_fix", item.ImageURL).
+		Str("image_key_after_fix", item.ImageKey).
+		Msg("ItemDetailHandler - after fixItemImageURL")
 
 	data := map[string]interface{}{
 		"Title": item.Title,

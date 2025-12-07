@@ -39,6 +39,11 @@ func NewMinIOStorage(endpoint, publicEndpoint, accessKey, secretKey, bucketName 
 		publicEndpoint = endpoint
 	}
 
+	// Clean public endpoint: strip trailing slash and whitespace/quotes
+	publicEndpoint = strings.TrimSpace(publicEndpoint)
+	publicEndpoint = strings.Trim(publicEndpoint, `"'=`)
+	publicEndpoint = strings.TrimSuffix(publicEndpoint, "/")
+
 	storage := &MinIOStorage{
 		client:         minioClient,
 		bucketName:     bucketName,
@@ -47,17 +52,37 @@ func NewMinIOStorage(endpoint, publicEndpoint, accessKey, secretKey, bucketName 
 		useSSL:         useSSL,
 	}
 
+	log.Info().
+		Str("internal_endpoint", endpoint).
+		Str("public_endpoint", publicEndpoint).
+		Str("bucket", bucketName).
+		Bool("use_ssl", useSSL).
+		Msg("MinIO storage configuration initialized")
+
 	// Verify bucket exists
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// Only verify bucket if we can reach the endpoint (skip if external/unreachable from container)
 	exists, err := minioClient.BucketExists(ctx, bucketName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check bucket existence: %w", err)
+		log.Warn().Err(err).Msgf("Failed to check bucket existence for %s (will continue)", bucketName)
+	} else if !exists {
+		// Try to create bucket if it doesn't exist
+		err = minioClient.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{})
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to create bucket %s", bucketName)
+		} else {
+			log.Info().Msgf("Bucket %s created successfully", bucketName)
+		}
 	}
 
-	if !exists {
-		return nil, fmt.Errorf("bucket '%s' does not exist", bucketName)
+	// Always ensure policy is public read (fixes existing buckets with wrong policy)
+	policy := fmt.Sprintf(`{"Version": "2012-10-17","Statement": [{"Action": ["s3:GetObject"],"Effect": "Allow","Principal": {"AWS": ["*"]},"Resource": ["arn:aws:s3:::%s/*"],"Sid": ""}]}`, bucketName)
+	if err := minioClient.SetBucketPolicy(ctx, bucketName, policy); err != nil {
+		log.Error().Err(err).Msg("Failed to set bucket policy")
+	} else {
+		log.Info().Msg("Verified/Set public bucket policy")
 	}
 
 	log.Info().
@@ -90,12 +115,7 @@ func (s *MinIOStorage) UploadImage(ctx context.Context, reader io.Reader, filena
 		return "", "", fmt.Errorf("failed to upload image: %w", err)
 	}
 
-	// Generate public URL
-	protocol := "http"
-	if s.useSSL {
-		protocol = "https"
-	}
-	publicURL := fmt.Sprintf("%s://%s/%s/%s", protocol, s.publicEndpoint, s.bucketName, uniqueFilename)
+	publicURL := s.GetImageURL(uniqueFilename)
 
 	log.Info().
 		Str("filename", filename).
@@ -128,11 +148,32 @@ func (s *MinIOStorage) DeleteImage(ctx context.Context, imageURL string) error {
 
 // GetImageURL returns the public URL for an image
 func (s *MinIOStorage) GetImageURL(objectKey string) string {
-	protocol := "http"
-	if s.useSSL {
-		protocol = "https"
+	// Clean endpoint again just to be safe (runtime sanitization)
+	cleanEndpoint := strings.Trim(s.publicEndpoint, "\"'= ")
+
+	var finalURL string
+
+	// If public endpoint already has a scheme (http:// or https://), use it directly
+	if strings.Contains(cleanEndpoint, "://") {
+		finalURL = fmt.Sprintf("%s/%s/%s", cleanEndpoint, s.bucketName, objectKey)
+	} else {
+		// Use the useSSL setting to determine protocol
+		protocol := "http"
+		if s.useSSL {
+			protocol = "https"
+		}
+		finalURL = fmt.Sprintf("%s://%s/%s/%s", protocol, cleanEndpoint, s.bucketName, objectKey)
 	}
-	return fmt.Sprintf("%s://%s/%s/%s", protocol, s.publicEndpoint, s.bucketName, objectKey)
+
+	log.Debug().
+		Str("object_key", objectKey).
+		Str("original_endpoint", s.publicEndpoint).
+		Str("clean_endpoint", cleanEndpoint).
+		Bool("use_ssl", s.useSSL).
+		Str("generated_url", finalURL).
+		Msg("GetImageURL called")
+
+	return finalURL
 }
 
 // GetKeyFromURL attempts to extract the object key from a full URL
@@ -150,6 +191,13 @@ func (s *MinIOStorage) GetKeyFromURL(imageURL string) string {
 	prefix := s.bucketName + "/"
 	if strings.HasPrefix(path, prefix) {
 		return strings.TrimPrefix(path, prefix)
+	}
+
+	// Fallback: search for bucketName in the path (handles malformed URLs)
+	// Example: //minio.jdex.com/lost-items-images//minio.jdex.com/lost-items-images/uploads/...
+	// Use LastIndex to find the actual key if the bucket name is duplicated
+	if idx := strings.LastIndex(path, prefix); idx != -1 {
+		return path[idx+len(prefix):]
 	}
 
 	return path
