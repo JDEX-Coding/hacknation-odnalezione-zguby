@@ -44,8 +44,10 @@ You should see:
 # Open another terminal
 cd service-c-publisher
 
-# Set environment to use mock API
+# Set environment to use mock API with login credentials
 $env:DANE_GOV_API_URL="http://localhost:8000"
+$env:DANE_GOV_EMAIL="admin@mcod.local"
+$env:DANE_GOV_PASSWORD="test-password"
 $env:RABBITMQ_URL="amqp://admin:admin123@localhost:5672/"
 
 # Run publisher
@@ -55,6 +57,8 @@ go run main.go
 You should see:
 ```
 🚀 Starting Service C: Publisher
+Logging in to dane.gov.pl...
+✅ Successfully logged in to dane.gov.pl email=admin@mcod.local
 ✅ dane.gov.pl API is healthy
 ✅ Publisher service initialized successfully
 🎧 Listening for messages on RabbitMQ...
@@ -171,12 +175,13 @@ Start-Process "http://localhost:15672"  # admin/admin123
 2. Create an organization
 3. Get API key from settings
 
-### Step 2: Configure
-
 ```powershell
-# Set environment variables
+# Set environment variables with your account credentials
 $env:DANE_GOV_API_URL="https://api.dane.gov.pl"
-$env:DANE_GOV_API_KEY="your-real-api-key"
+$env:DANE_GOV_EMAIL="your-email@example.com"
+$env:DANE_GOV_PASSWORD="your-password"
+$env:PUBLISHER_ID="your-org-id"
+```v:DANE_GOV_API_KEY="your-real-api-key"
 $env:PUBLISHER_ID="your-org-id"
 ```
 

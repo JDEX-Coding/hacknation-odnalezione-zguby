@@ -78,35 +78,20 @@ func (f *DCATFormatter) FormatToDCAT(item *models.ItemVectorizedEvent) *models.D
 	}
 }
 
-// FormatToDatasetRequest converts to dane.gov.pl API format
+// FormatToDatasetRequest converts to dane.gov.pl dataset creation format (used only if AUTO_CREATE_DATASET=true)
 func (f *DCATFormatter) FormatToDatasetRequest(item *models.ItemVectorizedEvent) *models.DatasetRequest {
 	return &models.DatasetRequest{
 		Data: models.DatasetData{
 			Type: "dataset",
 			Attributes: models.DatasetAttributes{
-				Title:           item.Title,
-				Notes:           item.Description,
-				Category:        f.mapCategory(item.Category),
+				Title:           "Rzeczy Znalezione - " + f.publisherName,
+				Notes:           "Zbiór danych dotyczących rzeczy znalezionych i oczekujących na odbiór",
+				Category:        "society",
 				Status:          "published",
 				Visibility:      "public",
-				UpdateFrequency: "onDemand",
-				Tags:            f.getKeywords(item),
+				UpdateFrequency: "daily",
+				Tags:            []string{"rzeczy znalezione", "lost and found", "zguby"},
 				License:         "cc-zero",
-				CustomFields: map[string]string{
-					"found_date":         item.FoundDate.Format("2006-01-02"),
-					"location":           item.Location,
-					"reporting_location": item.ReportingLocation,
-					"contact_email":      item.ContactEmail,
-					"contact_phone":      item.ContactPhone,
-				},
-				Resources: []models.ResourceAttribute{
-					{
-						Name:        fmt.Sprintf("Zdjęcie: %s", item.Title),
-						Description: fmt.Sprintf("Fotografia znalezionego przedmiotu - %s", item.Category),
-						Format:      "JPG",
-						URL:         item.ImageURL,
-					},
-				},
 				OrganizationID:  f.publisherID,
 				PublicationDate: time.Now(),
 			},
@@ -114,6 +99,31 @@ func (f *DCATFormatter) FormatToDatasetRequest(item *models.ItemVectorizedEvent)
 	}
 }
 
+// FormatToResourceRequest converts an item to a resource request for adding to a dataset
+func (f *DCATFormatter) FormatToResourceRequest(item *models.ItemVectorizedEvent) *models.ResourceRequest {
+	return &models.ResourceRequest{
+		Data: models.ResourceData{
+			Type: "resource",
+			Attributes: models.ResourceAttributeDetail{
+				Name:        fmt.Sprintf("%s - %s", item.Category, item.Title),
+				Description: item.Description,
+				Format:      "JPG",
+				URL:         item.ImageURL,
+				CustomFields: map[string]string{
+					"item_id":            item.ID,
+					"found_date":         item.FoundDate.Format("2006-01-02"),
+					"location":           item.Location,
+					"reporting_location": item.ReportingLocation,
+					"category":           item.Category,
+					"contact_email":      item.ContactEmail,
+					"contact_phone":      item.ContactPhone,
+				},
+			},
+		},
+	}
+}
+
+// TODO: Get themes should not assign to these categories. They are sololy for types of datasets
 // getThemes returns DCAT themes based on category
 func (f *DCATFormatter) getThemes(category string) []string {
 	// Map categories to EU vocabularies
@@ -173,6 +183,7 @@ func (f *DCATFormatter) getTemporal(foundDate time.Time) *models.DCATTemporal {
 	}
 }
 
+// TODO: Categories should not be assigned to categories of datasets
 // mapCategory maps internal categories to dane.gov.pl categories
 func (f *DCATFormatter) mapCategory(category string) string {
 	categoryMap := map[string]string{

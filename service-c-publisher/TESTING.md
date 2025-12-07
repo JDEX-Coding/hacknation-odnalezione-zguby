@@ -30,7 +30,8 @@ RABBITMQ_ROUTING_KEY=item.vectorized
 
 # Point to mock server or real API
 DANE_GOV_API_URL=http://localhost:8000
-DANE_GOV_API_KEY=test-key
+DANE_GOV_EMAIL=admin@mcod.local
+DANE_GOV_PASSWORD=Hacknation-2025
 
 PUBLISHER_NAME=Test Municipality
 PUBLISHER_ID=org-test-001

@@ -12,8 +12,8 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-# Build the application (only main.go, not mock-api.go)
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o publisher main.go
+# Build the application
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o publisher .
 
 # Final stage
 FROM alpine:latest

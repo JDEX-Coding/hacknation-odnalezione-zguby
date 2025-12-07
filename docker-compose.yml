@@ -191,11 +191,14 @@ services:
             - RABBITMQ_EXCHANGE=lost-found.events
             - RABBITMQ_QUEUE=q.lost-items.publish
             - RABBITMQ_ROUTING_KEY=item.vectorized
-            - DANE_GOV_API_URL=${DANE_GOV_API_URL:-http://localhost:8000}
-            - DANE_GOV_API_KEY=${DANE_GOV_API_KEY:-}
-            - PUBLISHER_NAME=Urząd Miasta - System Rzeczy Znalezionych
+            - DANE_GOV_API_URL=${DANE_GOV_API_URL}
+            - DANE_GOV_EMAIL=${DANE_GOV_EMAIL}
+            - DANE_GOV_PASSWORD=${DANE_GOV_PASSWORD}
+            - PUBLISHER_NAME=${PUBLISHER_NAME:-Urząd Miasta - System Rzeczy Znalezionych}
             - PUBLISHER_ID=${PUBLISHER_ID:-org-001}
-            - BASE_URL=http://localhost:8080
+            - BASE_URL=${BASE_URL:-http://localhost:8080}
+            - AUTO_CREATE_DATASET=${AUTO_CREATE_DATASET:-false}
+            - DATASET_ID=${DATASET_ID}
         depends_on:
             rabbitmq:
                 condition: service_healthy

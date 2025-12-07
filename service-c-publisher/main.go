@@ -38,16 +38,9 @@ func main() {
 	log.Info().Msg("Initializing dane.gov.pl API client...")
 	daneGovClient := client.NewDaneGovClient(
 		config.DaneGovAPIURL,
-		config.DaneGovAPIKey,
+		config.DaneGovEmail,
+		config.DaneGovPassword,
 	)
-
-	// Check API health
-	ctx := context.Background()
-	if err := daneGovClient.HealthCheck(ctx); err != nil {
-		log.Warn().Err(err).Msg("dane.gov.pl API health check failed (will retry during publish)")
-	} else {
-		log.Info().Msg("✅ dane.gov.pl API is healthy")
-	}
 
 	// Initialize DCAT formatter
 	dcatFormatter := formatter.NewDCATFormatter(
@@ -55,6 +48,44 @@ func main() {
 		config.PublisherID,
 		config.BaseURL,
 	)
+
+	// Login to dane.gov.pl
+	ctx := context.Background()
+	log.Info().Msg("Logging in to dane.gov.pl...")
+	if err := daneGovClient.Login(ctx); err != nil {
+		log.Fatal().Err(err).Msg("Failed to login to dane.gov.pl")
+	}
+
+	// Handle dataset creation if needed
+	datasetID := config.DatasetID
+	if config.AutoCreateDataset && datasetID == "" {
+		log.Info().Msg("AUTO_CREATE_DATASET=true and no DATASET_ID provided, creating new dataset...")
+
+		// Use a dummy event to create dataset structure
+		dummyEvent := &models.ItemVectorizedEvent{
+			ID:    "init",
+			Title: "Initialization",
+		}
+		datasetRequest := dcatFormatter.FormatToDatasetRequest(dummyEvent)
+
+		response, err := daneGovClient.CreateDataset(ctx, datasetRequest)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to create dataset on dane.gov.pl")
+		}
+
+		datasetID = response.Data.ID
+		log.Info().
+			Str("dataset_id", datasetID).
+			Str("url", response.Data.Attributes.URL).
+			Msg("✅ Created new dataset on dane.gov.pl - please save this DATASET_ID to .env")
+	} else if datasetID == "" {
+		log.Fatal().Msg("DATASET_ID is required when AUTO_CREATE_DATASET=false")
+	}
+
+	log.Info().
+		Str("dataset_id", datasetID).
+		Bool("auto_create", config.AutoCreateDataset).
+		Msg("Using dataset for resource publishing")
 
 	// Initialize RabbitMQ consumer
 	log.Info().Msg("Initializing RabbitMQ consumer...")
@@ -76,25 +107,27 @@ func main() {
 		log.Info().
 			Str("item_id", event.ID).
 			Str("title", event.Title).
+			Str("category", event.Category).
 			Msg("📝 Processing item for publication")
 
-		// Format to dane.gov.pl format
-		datasetRequest := dcatFormatter.FormatToDatasetRequest(event)
+		// Format to resource request
+		resourceRequest := dcatFormatter.FormatToResourceRequest(event)
 
-		// Publish to dane.gov.pl API
-		response, err := daneGovClient.PublishDataset(ctx, datasetRequest)
+		// Add resource to dataset
+		response, err := daneGovClient.AddResource(ctx, datasetID, resourceRequest)
 		if err != nil {
 			log.Error().
 				Err(err).
 				Str("item_id", event.ID).
-				Msg("Failed to publish to dane.gov.pl")
+				Str("dataset_id", datasetID).
+				Msg("Failed to add resource to dane.gov.pl dataset")
 			return err
 		}
 
 		// Publish success event back to RabbitMQ
 		publishedEvent := &models.ItemPublishedEvent{
 			ID:              event.ID,
-			DatasetID:       response.Data.ID,
+			DatasetID:       datasetID,
 			PublishedAt:     time.Now(),
 			DaneGovURL:      response.Data.Attributes.URL,
 			PublicationDate: time.Now(),
@@ -107,9 +140,9 @@ func main() {
 
 		log.Info().
 			Str("item_id", event.ID).
-			Str("dataset_id", response.Data.ID).
-			Str("url", response.Data.Attributes.URL).
-			Msg("✅ Successfully published item to dane.gov.pl")
+			Str("resource_id", response.Data.ID).
+			Str("dataset_id", datasetID).
+			Msg("✅ Successfully added resource to dane.gov.pl dataset")
 
 		return nil
 	}
@@ -145,10 +178,13 @@ type Config struct {
 	RabbitMQQueue      string
 	RabbitMQRoutingKey string
 	DaneGovAPIURL      string
-	DaneGovAPIKey      string
+	DaneGovEmail       string
+	DaneGovPassword    string
 	PublisherName      string
 	PublisherID        string
 	BaseURL            string
+	AutoCreateDataset  bool
+	DatasetID          string
 }
 
 func loadConfig() *Config {
@@ -158,16 +194,26 @@ func loadConfig() *Config {
 		RabbitMQQueue:      getEnv("RABBITMQ_QUEUE", "q.lost-items.publish"),
 		RabbitMQRoutingKey: getEnv("RABBITMQ_ROUTING_KEY", "item.vectorized"),
 		DaneGovAPIURL:      getEnv("DANE_GOV_API_URL", "http://localhost:8000"),
-		DaneGovAPIKey:      getEnv("DANE_GOV_API_KEY", ""),
+		DaneGovEmail:       getEnv("DANE_GOV_EMAIL", ""),
+		DaneGovPassword:    getEnv("DANE_GOV_PASSWORD", ""),
 		PublisherName:      getEnv("PUBLISHER_NAME", "Urząd Miasta - System Rzeczy Znalezionych"),
 		PublisherID:        getEnv("PUBLISHER_ID", "org-001"),
 		BaseURL:            getEnv("BASE_URL", "http://localhost:8080"),
+		AutoCreateDataset:  getEnvBool("AUTO_CREATE_DATASET", false),
+		DatasetID:          getEnv("DATASET_ID", ""),
 	}
 }
 
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+func getEnvBool(key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		return value == "true" || value == "1" || value == "yes"
 	}
 	return defaultValue
 }

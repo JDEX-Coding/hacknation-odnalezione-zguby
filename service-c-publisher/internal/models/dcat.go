@@ -119,3 +119,41 @@ type DatasetResponse struct {
 		Self string `json:"self"`
 	} `json:"links"`
 }
+
+// ResourceRequest represents the request to add a resource to a dataset
+type ResourceRequest struct {
+	Data ResourceData `json:"data"`
+}
+
+// ResourceData wraps the resource attributes
+type ResourceData struct {
+	Type       string                  `json:"type"`
+	Attributes ResourceAttributeDetail `json:"attributes"`
+}
+
+// ResourceAttributeDetail contains the resource metadata
+type ResourceAttributeDetail struct {
+	Name         string            `json:"name"`
+	Description  string            `json:"description,omitempty"`
+	Format       string            `json:"format"`
+	URL          string            `json:"url"`
+	Size         int64             `json:"size,omitempty"`
+	CustomFields map[string]string `json:"custom_fields,omitempty"`
+}
+
+// ResourceResponse represents the API response for resource creation
+type ResourceResponse struct {
+	Data struct {
+		ID         string `json:"id"`
+		Type       string `json:"type"`
+		Attributes struct {
+			Name   string    `json:"name"`
+			Format string    `json:"format"`
+			URL    string    `json:"url"`
+			Date   time.Time `json:"created"`
+		} `json:"attributes"`
+	} `json:"data"`
+	Links struct {
+		Self string `json:"self"`
+	} `json:"links"`
+}
