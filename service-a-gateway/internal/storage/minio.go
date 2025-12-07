@@ -39,7 +39,9 @@ func NewMinIOStorage(endpoint, publicEndpoint, accessKey, secretKey, bucketName 
 		publicEndpoint = endpoint
 	}
 
-	// Clean public endpoint: strip trailing slash
+	// Clean public endpoint: strip trailing slash and whitespace/quotes
+	publicEndpoint = strings.TrimSpace(publicEndpoint)
+	publicEndpoint = strings.Trim(publicEndpoint, `"'`)
 	publicEndpoint = strings.TrimSuffix(publicEndpoint, "/")
 
 	storage := &MinIOStorage{
@@ -165,6 +167,13 @@ func (s *MinIOStorage) GetKeyFromURL(imageURL string) string {
 	prefix := s.bucketName + "/"
 	if strings.HasPrefix(path, prefix) {
 		return strings.TrimPrefix(path, prefix)
+	}
+
+	// Fallback: search for bucketName in the path (handles malformed URLs)
+	// Example: //minio.jdex.com/lost-items-images//minio.jdex.com/lost-items-images/uploads/...
+	// Use LastIndex to find the actual key if the bucket name is duplicated
+	if idx := strings.LastIndex(path, prefix); idx != -1 {
+		return path[idx+len(prefix):]
 	}
 
 	return path
