@@ -85,6 +85,52 @@
                 </div>
             </div>
 
+            <!-- Storage Timer Info -->
+            <div class="mb-8">
+                 <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    Czas na odbiór
+                </h2>
+
+                <div class="bg-orange-50 rounded-lg p-4 border border-orange-100">
+                    <div class="flex items-center gap-3">
+                         {{if isDocuments .Item.Category}}
+                             <div class="p-2 bg-gray-100 rounded-full text-gray-600">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                             </div>
+                             <div>
+                                <p class="font-semibold text-gray-900">Procedura specjalna</p>
+                                <p class="text-sm text-gray-700">Dokumenty tożsamości przekazywane są do organu wydającego lub Policji. Nie podlegają standardowym zasadom przechowywania.</p>
+                             </div>
+                         {{else}}
+                             {{if isExpiringSoon .Item.FoundDate .Item.Category}}
+                                 <div class="p-2 bg-red-100 rounded-full text-red-600">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                 </div>
+                                 <div class="flex-1">
+                                    <p class="font-bold text-red-700 text-lg">{{daysRemaining .Item.FoundDate .Item.Category}} dni do wygaśnięcia</p>
+                                    <p class="font-medium text-red-800">Wygasa dnia: {{expirationDate .Item.FoundDate .Item.Category}}</p>
+                                    <p class="text-xs text-red-600 mt-1">Termin przechowywania zbliża się do końca (zgodnie z Art. 187 KC).</p>
+                                 </div>
+                             {{else}}
+                                 <div class="p-2 bg-orange-100 rounded-full text-orange-600">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                 </div>
+                                 <div class="flex-1">
+                                    <p class="font-bold text-orange-900 text-lg">{{daysRemaining .Item.FoundDate .Item.Category}} dni do wygaśnięcia</p>
+                                    <p class="font-medium text-orange-800">Wygasa dnia: {{expirationDate .Item.FoundDate .Item.Category}}</p>
+                                    <p class="text-xs text-orange-700 mt-1">Przedmiot jest przechowywany przez 2 lata od dnia znalezienia.</p>
+                                 </div>
+                             {{end}}
+
+                         {{end}}
+                    </div>
+                </div>
+            </div>
+
+
             <!-- Description Section -->
             <div class="mb-8">
                 <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -187,34 +233,66 @@
                 </div>
             </div>
 
-            <!-- Step 2: AI Processing -->
+            <!-- Step 2: CLIP Processing -->
             <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 w-10 h-10 {{if eq .Item.Status "pending"}}bg-yellow-500{{else}}bg-green-500{{end}} rounded-full flex items-center justify-center">
-                    {{if eq .Item.Status "pending"}}
-                    <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    {{else}}
+                <div class="flex-shrink-0 w-10 h-10 {{if .Item.ProcessedByClip}}bg-green-500{{else}}bg-yellow-500{{end}} rounded-full flex items-center justify-center">
+                    {{if .Item.ProcessedByClip}}
                     <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
                     </svg>
+                    {{else}}
+                    <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     {{end}}
                 </div>
                 <div class="flex-1">
-                    <h3 class="font-semibold text-gray-900">Przetwarzanie AI</h3>
-                    <p class="text-sm text-gray-600">Generowanie embeddingów wektorowych dla wyszukiwania semantycznego</p>
-                    {{if eq .Item.Status "pending"}}
-                    <p class="text-xs text-yellow-600 mt-1">W trakcie przetwarzania...</p>
-                    {{else}}
+                    <h3 class="font-semibold text-gray-900">Analiza AI (CLIP)</h3>
+                    <p class="text-sm text-gray-600">Analiza obrazu i tekstu w celu stworzenia opisu semantycznego</p>
+                    {{if .Item.ProcessedByClip}}
                     <p class="text-xs text-gray-500 mt-1">Zakończono</p>
+                    {{else}}
+                    <p class="text-xs text-yellow-600 mt-1">W trakcie analizy...</p>
                     {{end}}
                 </div>
             </div>
 
-            <!-- Step 3: Publication -->
+            <!-- Step 3: Qdrant Indexing -->
             <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 w-10 h-10 {{if eq .Item.Status "published"}}bg-green-500{{else}}bg-gray-300{{end}} rounded-full flex items-center justify-center">
-                    {{if eq .Item.Status "published"}}
+                 <div class="flex-shrink-0 w-10 h-10 {{if .Item.ProcessedByQdrant}}bg-green-500{{else if .Item.ProcessedByClip}}bg-yellow-500{{else}}bg-gray-300{{end}} rounded-full flex items-center justify-center">
+                    {{if .Item.ProcessedByQdrant}}
                     <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    {{else if .Item.ProcessedByClip}}
+                     <div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    {{else}}
+                    <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                    </svg>
+                    {{end}}
+                </div>
+                <div class="flex-1">
+                    <h3 class="font-semibold text-gray-900">Indeksacja Wektorowa</h3>
+                    <p class="text-sm text-gray-600">Dodawanie do bazy wektorowej Qdrant dla szybkiego wyszukiwania</p>
+                    {{if .Item.ProcessedByQdrant}}
+                    <p class="text-xs text-gray-500 mt-1">Zakończono</p>
+                    {{else if .Item.ProcessedByClip}}
+                    <p class="text-xs text-yellow-600 mt-1">Oczekiwanie na indeksację...</p>
+                    {{else}}
+                    <p class="text-xs text-gray-500 mt-1">Oczekuje na zakończenie analizy AI...</p>
+                    {{end}}
+                </div>
+            </div>
+
+            <!-- Step 4: Publication -->
+            <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 w-10 h-10 {{if .Item.PublishedOnDaneGov}}bg-green-500{{else if .Item.ProcessedByQdrant}}bg-blue-500{{else}}bg-gray-300{{end}} rounded-full flex items-center justify-center">
+                    {{if .Item.PublishedOnDaneGov}}
+                    <svg class="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    {{else if .Item.ProcessedByQdrant}}
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                     </svg>
                     {{else}}
                     <svg class="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -224,11 +302,13 @@
                 </div>
                 <div class="flex-1">
                     <h3 class="font-semibold text-gray-900">Publikacja na dane.gov.pl</h3>
-                    <p class="text-sm text-gray-600">Automatyczne przesłanie danych w formacie JSON-LD do portalu dane.gov.pl</p>
-                    {{if eq .Item.Status "published"}}
+                    <p class="text-sm text-gray-600">Automatyczne udostępnienie danych w otwartym rejestrze</p>
+                    {{if .Item.PublishedOnDaneGov}}
                     <p class="text-xs text-green-600 mt-1">Opublikowano</p>
+                    {{else if .Item.ProcessedByQdrant}}
+                    <p class="text-xs text-blue-600 mt-1">Oczekuje na publikację</p>
                     {{else}}
-                    <p class="text-xs text-gray-500 mt-1">Oczekuje na przetworzenie...</p>
+                    <p class="text-xs text-gray-500 mt-1">Oczekuje na zakończenie przetwarzania...</p>
                     {{end}}
                 </div>
             </div>

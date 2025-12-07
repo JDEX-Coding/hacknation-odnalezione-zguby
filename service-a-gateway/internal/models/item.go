@@ -6,23 +6,25 @@ import (
 
 // LostItem represents a lost item entry
 type LostItem struct {
-	ID                string    `json:"id"`
-	Title             string    `json:"title"`
-	Description       string    `json:"description"`
-	Category          string    `json:"category"`
-	Location          string    `json:"location"`
-	FoundDate         time.Time `json:"found_date"`
-	ReportingDate     time.Time `json:"reporting_date"`
-	ReportingLocation string    `json:"reporting_location"`
-	ImageURL          string    `json:"image_url"`
-	Status            string    `json:"status"` // pending, published, archived
-	ContactEmail      string    `json:"contact_email"`
-	ContactPhone      string    `json:"contact_phone"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
+	ID                 string    `json:"id"`
+	Title              string    `json:"title"`
+	Description        string    `json:"description"`
+	Category           string    `json:"category"`
+	Location           string    `json:"location"`
+	FoundDate          time.Time `json:"found_date"`
+	ReportingDate      time.Time `json:"reporting_date"`
+	ReportingLocation  string    `json:"reporting_location"`
+	ImageURL           string    `json:"image_url"`
+	ImageKey           string    `json:"image_key"`
+	Status             string    `json:"status"` // pending, published, archived
+	ProcessedByClip    bool      `json:"processed_by_clip"`
+	ProcessedByQdrant  bool      `json:"processed_by_qdrant"`
+	PublishedOnDaneGov bool      `json:"published_on_dane_gov"`
+	ContactEmail       string    `json:"contact_email"`
+	ContactPhone       string    `json:"contact_phone"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
-
-// CreateLostItemRequest represents the form data for creating a lost item
 type CreateLostItemRequest struct {
 	Title        string `json:"title" form:"title"`
 	Description  string `json:"description" form:"description"`
@@ -35,21 +37,21 @@ type CreateLostItemRequest struct {
 
 // ItemSubmittedEvent represents the event published to RabbitMQ
 type ItemSubmittedEvent struct {
-	ID                string    `json:"id"`
-	Title             string    `json:"title"`
+	ID                string    `json:"item_id"`
+	Title             string    `json:"text"`
 	Description       string    `json:"description"`
 	Category          string    `json:"category"`
 	Location          string    `json:"location"`
-	FoundDate         time.Time `json:"found_date"`
+	FoundDate         time.Time `json:"date_lost"`
 	ReportingDate     time.Time `json:"reporting_date"`
 	ReportingLocation string    `json:"reporting_location"`
 	ImageURL          string    `json:"image_url"`
+	ImageKey          string    `json:"image_key"`
 	ContactEmail      string    `json:"contact_email"`
 	ContactPhone      string    `json:"contact_phone"`
 	Timestamp         time.Time `json:"timestamp"`
 }
 
-// Category options
 var Categories = []string{
 	"Dokumenty",
 	"Elektronika",

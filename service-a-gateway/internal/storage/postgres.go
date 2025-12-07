@@ -57,7 +57,11 @@ func (s *PostgresStorage) Init() error {
 	ALTER TABLE lost_items ADD COLUMN IF NOT EXISTS reporting_date TIMESTAMP;
 	ALTER TABLE lost_items ADD COLUMN IF NOT EXISTS reporting_location TEXT;
 	ALTER TABLE lost_items ADD COLUMN IF NOT EXISTS contact_email TEXT;
-	ALTER TABLE lost_items ADD COLUMN IF NOT EXISTS contact_phone TEXT;`
+	ALTER TABLE lost_items ADD COLUMN IF NOT EXISTS contact_phone TEXT;
+	ALTER TABLE lost_items ADD COLUMN IF NOT EXISTS processed_by_clip BOOLEAN DEFAULT FALSE;
+	ALTER TABLE lost_items ADD COLUMN IF NOT EXISTS processed_by_qdrant BOOLEAN DEFAULT FALSE;
+	ALTER TABLE lost_items ADD COLUMN IF NOT EXISTS published_on_dane_gov BOOLEAN DEFAULT FALSE;
+	ALTER TABLE lost_items ADD COLUMN IF NOT EXISTS image_key TEXT;`
 
 	_, err := s.db.Exec(query)
 	return err
@@ -68,9 +72,11 @@ func (s *PostgresStorage) Save(item *models.LostItem) error {
 	INSERT INTO lost_items (
 		id, title, description, category, location, found_date,
 		reporting_date, reporting_location,
-		image_url, status, contact_email, contact_phone, created_at, updated_at
+		image_url, image_key, status, contact_email, contact_phone,
+		processed_by_clip, processed_by_qdrant, published_on_dane_gov,
+		created_at, updated_at
 	) VALUES (
-		$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
+		$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
 	) ON CONFLICT (id) DO UPDATE SET
 		title = EXCLUDED.title,
 		description = EXCLUDED.description,
@@ -80,9 +86,13 @@ func (s *PostgresStorage) Save(item *models.LostItem) error {
 		reporting_date = EXCLUDED.reporting_date,
 		reporting_location = EXCLUDED.reporting_location,
 		image_url = EXCLUDED.image_url,
+		image_key = EXCLUDED.image_key,
 		status = EXCLUDED.status,
 		contact_email = EXCLUDED.contact_email,
 		contact_phone = EXCLUDED.contact_phone,
+		processed_by_clip = EXCLUDED.processed_by_clip,
+		processed_by_qdrant = EXCLUDED.processed_by_qdrant,
+		published_on_dane_gov = EXCLUDED.published_on_dane_gov,
 		updated_at = EXCLUDED.updated_at
 	;`
 
@@ -95,7 +105,8 @@ func (s *PostgresStorage) Save(item *models.LostItem) error {
 	_, err := s.db.Exec(query,
 		item.ID, item.Title, item.Description, item.Category, item.Location,
 		item.FoundDate, item.ReportingDate, item.ReportingLocation,
-		item.ImageURL, item.Status, item.ContactEmail, item.ContactPhone,
+		item.ImageURL, item.ImageKey, item.Status, item.ContactEmail, item.ContactPhone,
+		item.ProcessedByClip, item.ProcessedByQdrant, item.PublishedOnDaneGov,
 		item.CreatedAt, item.UpdatedAt,
 	)
 
@@ -112,14 +123,20 @@ func (s *PostgresStorage) Get(id string) (*models.LostItem, bool) {
 	query := `
 	SELECT id, title, description, category, location, found_date,
 		   reporting_date, reporting_location,
-		   image_url, status, contact_email, contact_phone, created_at, updated_at
+		   image_url, image_key, status, contact_email, contact_phone,
+		   processed_by_clip, processed_by_qdrant, published_on_dane_gov,
+		   created_at, updated_at
 	FROM lost_items WHERE id = $1`
 
 	item := &models.LostItem{}
+	var processedByClip, processedByQdrant, publishedOnDaneGov sql.NullBool
+	var imageKey sql.NullString
+
 	err := s.db.QueryRow(query, id).Scan(
 		&item.ID, &item.Title, &item.Description, &item.Category, &item.Location,
 		&item.FoundDate, &item.ReportingDate, &item.ReportingLocation,
-		&item.ImageURL, &item.Status, &item.ContactEmail, &item.ContactPhone,
+		&item.ImageURL, &imageKey, &item.Status, &item.ContactEmail, &item.ContactPhone,
+		&processedByClip, &processedByQdrant, &publishedOnDaneGov,
 		&item.CreatedAt, &item.UpdatedAt,
 	)
 
@@ -131,6 +148,11 @@ func (s *PostgresStorage) Get(id string) (*models.LostItem, bool) {
 		return nil, false
 	}
 
+	item.ImageKey = imageKey.String
+	item.ProcessedByClip = processedByClip.Bool
+	item.ProcessedByQdrant = processedByQdrant.Bool
+	item.PublishedOnDaneGov = publishedOnDaneGov.Bool
+
 	return item, true
 }
 
@@ -139,7 +161,9 @@ func (s *PostgresStorage) List() ([]*models.LostItem, error) {
 	query := `
 	SELECT id, title, description, category, location, found_date,
 		   reporting_date, reporting_location,
-		   image_url, status, contact_email, contact_phone, created_at, updated_at
+		   image_url, image_key, status, contact_email, contact_phone,
+		   processed_by_clip, processed_by_qdrant, published_on_dane_gov,
+		   created_at, updated_at
 	FROM lost_items
 	ORDER BY created_at DESC`
 
@@ -152,15 +176,23 @@ func (s *PostgresStorage) List() ([]*models.LostItem, error) {
 	var items []*models.LostItem
 	for rows.Next() {
 		item := &models.LostItem{}
+		var processedByClip, processedByQdrant, publishedOnDaneGov sql.NullBool
+		var imageKey sql.NullString
+
 		err := rows.Scan(
 			&item.ID, &item.Title, &item.Description, &item.Category, &item.Location,
 			&item.FoundDate, &item.ReportingDate, &item.ReportingLocation,
-			&item.ImageURL, &item.Status, &item.ContactEmail, &item.ContactPhone,
+			&item.ImageURL, &imageKey, &item.Status, &item.ContactEmail, &item.ContactPhone,
+			&processedByClip, &processedByQdrant, &publishedOnDaneGov,
 			&item.CreatedAt, &item.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err
 		}
+		item.ImageKey = imageKey.String
+		item.ProcessedByClip = processedByClip.Bool
+		item.ProcessedByQdrant = processedByQdrant.Bool
+		item.PublishedOnDaneGov = publishedOnDaneGov.Bool
 		items = append(items, item)
 	}
 

@@ -1,18 +1,44 @@
 version: "3.9"
 
 services:
+    clip-service:
+        container_name: odnalezione-clip-service
+        build:
+            context: ./clip-service
+            dockerfile: Dockerfile
+        environment:
+            - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672/
+            - MINIO_ENDPOINT=minio:9000
+            - MINIO_ACCESS_KEY=minioadmin
+            - MINIO_SECRET_KEY=minioadmin123
+            - MINIO_BUCKET_NAME=lost-items-images
+        depends_on:
+            rabbitmq:
+                condition: service_healthy
+            minio:
+                condition: service_healthy
+        restart: unless-stopped
+        networks:
+            - odnalezione-network
+        volumes:
+            - clip_cache:/app/.cache/huggingface
+
     qdrant-service:
         container_name: odnalezione-qdrant-service
         build:
             context: ./qdrant-service
             dockerfile: Dockerfile
+        ports:
+            - "8081:8081"
         environment:
             - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672/
-            - QDRANT_ADDR=odnalezione-qdrant-db:6334
-            - COLLECTION_NAME=lost_items
+            - QDRANT_ADDR=qdrant-db:6334
+            - COLLECTION_NAME=lost_items_512
         depends_on:
-            - qdrant-db
-            - rabbitmq
+            qdrant-db:
+                condition: service_started
+            rabbitmq:
+                condition: service_healthy
         restart: unless-stopped
         networks:
             - odnalezione-network
@@ -22,6 +48,7 @@ services:
         image: qdrant/qdrant:latest
         ports:
             - "6333:6333"
+            - "6334:6334"
         volumes:
             - ./qdrant_storage:/qdrant/storage
         environment:
@@ -68,6 +95,7 @@ services:
 
     minio:
         image: minio/minio:latest
+        container_name: odnalezione-minio
         ports:
             - "9000:9000"
             - "9001:9001"
@@ -88,6 +116,7 @@ services:
 
     minio-init:
         image: minio/mc:latest
+        container_name: odnalezione-minio-init
         depends_on:
             minio:
                 condition: service_healthy
@@ -121,6 +150,7 @@ services:
             - odnalezione-network
 
     a-gateway:
+        container_name: odnalezione-gateway
         build:
             context: ./service-a-gateway
             dockerfile: Dockerfile
@@ -152,10 +182,6 @@ services:
             - odnalezione-network
 
 volumes:
-    qdrant-service:
-        driver: local
-    qdrant-db:
-        driver: local
     rabbitmq_data:
         driver: local
     qdrant_data:
@@ -163,6 +189,8 @@ volumes:
     minio_data:
         driver: local
     postgres_data:
+        driver: local
+    clip_cache:
         driver: local
 
 networks:

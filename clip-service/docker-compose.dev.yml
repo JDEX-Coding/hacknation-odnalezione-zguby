@@ -1,0 +1,84 @@
+# Docker Compose for local development
+# Simplified setup for MVP testing
+version: "3.9"
+
+services:
+    rabbitmq:
+        image: rabbitmq:3.12-management-alpine
+        container_name: clip-rabbitmq
+        ports:
+            - "5672:5672"
+            - "15672:15672"
+        environment:
+            - RABBITMQ_DEFAULT_USER=admin
+            - RABBITMQ_DEFAULT_PASS=admin123
+        healthcheck:
+            test: rabbitmq-diagnostics -q ping
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        volumes:
+            - rabbitmq_data:/var/lib/rabbitmq
+
+    minio:
+        image: minio/minio:latest
+        container_name: clip-minio
+        ports:
+            - "9000:9000"
+            - "9001:9001"
+        environment:
+            - MINIO_ROOT_USER=minioadmin
+            - MINIO_ROOT_PASSWORD=minioadmin123
+        command: server /data --console-address ":9001"
+        healthcheck:
+            test:
+                ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+            interval: 10s
+            timeout: 5s
+            retries: 5
+        volumes:
+            - minio_data:/data
+
+    # MinIO bucket initialization
+    minio-init:
+        image: minio/mc:latest
+        container_name: clip-minio-init
+        depends_on:
+            minio:
+                condition: service_healthy
+        entrypoint: >
+            /bin/sh -c "
+            mc alias set myminio http://minio:9000 minioadmin minioadmin123;
+            mc mb myminio/lost-items-images --ignore-existing;
+            mc anonymous set download myminio/lost-items-images;
+            echo 'MinIO bucket created successfully';
+            "
+
+    clip-service:
+        build:
+            context: .
+            dockerfile: Dockerfile.dev
+        container_name: clip-service-dev
+        environment:
+            - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672/
+            - MINIO_ENDPOINT=minio:9000
+            - MINIO_ACCESS_KEY=minioadmin
+            - MINIO_SECRET_KEY=minioadmin123
+            - MINIO_BUCKET_NAME=lost-items-images
+            - LOG_LEVEL=INFO
+        depends_on:
+            rabbitmq:
+                condition: service_healthy
+            minio:
+                condition: service_healthy
+        volumes:
+            # Mount cache to speed up subsequent runs
+            - clip_cache:/app/.cache/huggingface
+            # Optional: mount code for development
+            # - ./:/app
+        restart: unless-stopped
+
+volumes:
+    rabbitmq_data:
+    minio_data:
+    clip_cache:

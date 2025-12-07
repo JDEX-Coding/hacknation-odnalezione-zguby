@@ -35,6 +35,7 @@ type QueueName string
 const (
 	ExchangeLostFound    = "lost-found.events"
 	RoutingKeySubmitted  = "item.submitted"
+	RoutingKeyEmbedded   = "item.embedded"
 	RoutingKeyVectorized = "item.vectorized"
 )
 
@@ -429,7 +430,7 @@ func (h *RabbitMQHandler) SetupQueues() error {
 	if err := h.DeclareQueue(QueueLostItemsIngest, true, false); err != nil {
 		return err
 	}
-	if err := h.BindQueue(QueueLostItemsIngest, ExchangeLostFound, RoutingKeySubmitted); err != nil {
+	if err := h.BindQueue(QueueLostItemsIngest, ExchangeLostFound, RoutingKeyEmbedded); err != nil {
 		return err
 	}
 

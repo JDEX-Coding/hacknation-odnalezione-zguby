@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/url"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -67,9 +69,9 @@ func NewMinIOStorage(endpoint, publicEndpoint, accessKey, secretKey, bucketName 
 	return storage, nil
 }
 
-// UploadImage uploads an image to MinIO and returns the public URL
-func (s *MinIOStorage) UploadImage(ctx context.Context, reader io.Reader, filename string, contentType string, size int64) (string, error) {
-	// Generate unique filename
+// UploadImage uploads an image to MinIO and returns the object key and public URL
+func (s *MinIOStorage) UploadImage(ctx context.Context, reader io.Reader, filename string, contentType string, size int64) (string, string, error) {
+	// Generate unique filename/key
 	ext := filepath.Ext(filename)
 	uniqueFilename := fmt.Sprintf("uploads/%s/%s%s", time.Now().Format("2006-01-02"), uuid.New().String(), ext)
 
@@ -85,7 +87,7 @@ func (s *MinIOStorage) UploadImage(ctx context.Context, reader io.Reader, filena
 		},
 	)
 	if err != nil {
-		return "", fmt.Errorf("failed to upload image: %w", err)
+		return "", "", fmt.Errorf("failed to upload image: %w", err)
 	}
 
 	// Generate public URL
@@ -97,21 +99,20 @@ func (s *MinIOStorage) UploadImage(ctx context.Context, reader io.Reader, filena
 
 	log.Info().
 		Str("filename", filename).
-		Str("unique_filename", uniqueFilename).
+		Str("key", uniqueFilename).
 		Str("url", publicURL).
 		Msg("Image uploaded successfully")
 
-	return publicURL, nil
+	return uniqueFilename, publicURL, nil
 }
 
 // DeleteImage deletes an image from MinIO
 func (s *MinIOStorage) DeleteImage(ctx context.Context, imageURL string) error {
 	// Extract object key from URL
-	// URL format: http://localhost:9000/bucket-name/path/to/file.jpg
-	// We need to extract "path/to/file.jpg"
-
-	// This is a simple implementation - you may need to adjust based on your URL structure
-	objectName := filepath.Base(imageURL)
+	objectName := s.GetKeyFromURL(imageURL)
+	if objectName == "" {
+		return fmt.Errorf("could not extract key from URL")
+	}
 
 	err := s.client.RemoveObject(ctx, s.bucketName, objectName, minio.RemoveObjectOptions{})
 	if err != nil {
@@ -132,6 +133,26 @@ func (s *MinIOStorage) GetImageURL(objectKey string) string {
 		protocol = "https"
 	}
 	return fmt.Sprintf("%s://%s/%s/%s", protocol, s.publicEndpoint, s.bucketName, objectKey)
+}
+
+// GetKeyFromURL attempts to extract the object key from a full URL
+func (s *MinIOStorage) GetKeyFromURL(imageURL string) string {
+	// Try parsing URL
+	u, err := url.Parse(imageURL)
+	if err != nil {
+		return ""
+	}
+
+	// Path should look like /bucketName/path/to/object
+	path := strings.TrimPrefix(u.Path, "/")
+
+	// Check if path starts with bucket name
+	prefix := s.bucketName + "/"
+	if strings.HasPrefix(path, prefix) {
+		return strings.TrimPrefix(path, prefix)
+	}
+
+	return path
 }
 
 // HealthCheck verifies the MinIO connection
