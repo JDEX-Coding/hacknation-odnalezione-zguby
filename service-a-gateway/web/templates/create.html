@@ -481,6 +481,11 @@
             return;
         }
 
+        if (data.imageUrl) {
+            document.getElementById("imageUrl").value = data.imageUrl;
+            console.log("Image URL saved:", data.imageUrl);
+        }
+
         const escapedTitle = (data.title || "")
             .replace(/'/g, "\\'")
             .replace(/"/g, "&quot;");

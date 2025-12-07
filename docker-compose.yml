@@ -124,8 +124,8 @@ services:
             /bin/sh -c "
             mc alias set myminio http://minio:9000 minioadmin minioadmin123;
             mc mb myminio/lost-items-images --ignore-existing;
-            mc anonymous set download myminio/lost-items-images;
-            echo 'MinIO bucket created successfully';
+            mc anonymous set public myminio/lost-items-images;
+            echo 'MinIO bucket created and set to public read';
             "
         networks:
             - odnalezione-network
