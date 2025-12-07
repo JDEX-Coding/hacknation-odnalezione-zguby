@@ -172,23 +172,17 @@ services:
             - minio_data:/data
         labels:
             - "traefik.enable=true"
-            # API endpoint
             - "traefik.http.routers.minio-api.rule=Host(`minio.${DOMAIN}`)"
             - "traefik.http.routers.minio-api.entrypoints=websecure"
             - "traefik.http.routers.minio-api.tls=true"
             - "traefik.http.routers.minio-api.tls.certresolver=letsencrypt"
-            - "traefik.http.routers.minio-api.service=minio-api"
             - "traefik.http.services.minio-api.loadbalancer.server.port=9000"
-            # Console endpoint
+
             - "traefik.http.routers.minio-console.rule=Host(`minio-console.${DOMAIN}`)"
             - "traefik.http.routers.minio-console.entrypoints=websecure"
             - "traefik.http.routers.minio-console.tls=true"
             - "traefik.http.routers.minio-console.tls.certresolver=letsencrypt"
-            - "traefik.http.routers.minio-console.service=minio-console"
             - "traefik.http.services.minio-console.loadbalancer.server.port=9001"
-            # Basic Auth dla console (opcjonalne)
-            - "traefik.http.routers.minio-console.middlewares=minio-auth"
-            - "traefik.http.middlewares.minio-auth.basicauth.users=${MINIO_BASIC_AUTH}"
         healthcheck:
             test:
                 ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
