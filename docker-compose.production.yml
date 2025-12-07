@@ -19,6 +19,8 @@ services:
             - MINIO_BUCKET_NAME=${MINIO_BUCKET_NAME}
             - MINIO_USE_SSL=false
             - VISION_API_KEY=${VISION_API_KEY}
+            - VISION_API_ENDPOINT=${VISION_API_ENDPOINT:-https://api.openai.com/v1}
+            - VISION_MODEL=${VISION_MODEL:-gpt-4o}
             - DB_HOST=postgres
             - DB_PORT=5432
             - DB_USER=${POSTGRES_USER}

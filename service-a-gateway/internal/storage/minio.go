@@ -52,6 +52,13 @@ func NewMinIOStorage(endpoint, publicEndpoint, accessKey, secretKey, bucketName 
 		useSSL:         useSSL,
 	}
 
+	log.Info().
+		Str("internal_endpoint", endpoint).
+		Str("public_endpoint", publicEndpoint).
+		Str("bucket", bucketName).
+		Bool("use_ssl", useSSL).
+		Msg("MinIO storage configuration initialized")
+
 	// Verify bucket exists
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
