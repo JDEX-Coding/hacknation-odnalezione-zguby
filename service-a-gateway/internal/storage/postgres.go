@@ -61,7 +61,30 @@ func (s *PostgresStorage) Init() error {
 	ALTER TABLE lost_items ADD COLUMN IF NOT EXISTS processed_by_clip BOOLEAN DEFAULT FALSE;
 	ALTER TABLE lost_items ADD COLUMN IF NOT EXISTS processed_by_qdrant BOOLEAN DEFAULT FALSE;
 	ALTER TABLE lost_items ADD COLUMN IF NOT EXISTS published_on_dane_gov BOOLEAN DEFAULT FALSE;
-	ALTER TABLE lost_items ADD COLUMN IF NOT EXISTS image_key TEXT;`
+	ALTER TABLE lost_items ADD COLUMN IF NOT EXISTS image_key TEXT;
+
+	CREATE TABLE IF NOT EXISTS datasets (
+		id VARCHAR(36) PRIMARY KEY,
+		title TEXT NOT NULL,
+		notes TEXT,
+		url TEXT,
+		institution_name TEXT NOT NULL,
+		email TEXT NOT NULL,
+		categories TEXT[],
+		tags TEXT[],
+		created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+		updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+	);
+
+	CREATE TABLE IF NOT EXISTS dataset_items (
+		dataset_id VARCHAR(36) NOT NULL REFERENCES datasets(id) ON DELETE CASCADE,
+		item_id VARCHAR(36) NOT NULL REFERENCES lost_items(id) ON DELETE CASCADE,
+		added_at TIMESTAMP NOT NULL DEFAULT NOW(),
+		PRIMARY KEY (dataset_id, item_id)
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_dataset_items_dataset_id ON dataset_items(dataset_id);
+	CREATE INDEX IF NOT EXISTS idx_dataset_items_item_id ON dataset_items(item_id);`
 
 	_, err := s.db.Exec(query)
 	return err
@@ -197,4 +220,202 @@ func (s *PostgresStorage) List() ([]*models.LostItem, error) {
 	}
 
 	return items, nil
+}
+
+// SaveDataset creates or updates a dataset
+func (s *PostgresStorage) SaveDataset(dataset *models.Dataset) error {
+	query := `
+	INSERT INTO datasets (
+		id, title, notes, url, institution_name, email,
+		categories, tags, created_at, updated_at
+	) VALUES (
+		$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+	) ON CONFLICT (id) DO UPDATE SET
+		title = EXCLUDED.title,
+		notes = EXCLUDED.notes,
+		url = EXCLUDED.url,
+		institution_name = EXCLUDED.institution_name,
+		email = EXCLUDED.email,
+		categories = EXCLUDED.categories,
+		tags = EXCLUDED.tags,
+		updated_at = EXCLUDED.updated_at
+	;`
+
+	now := time.Now()
+	if dataset.CreatedAt.IsZero() {
+		dataset.CreatedAt = now
+	}
+	dataset.UpdatedAt = now
+
+	_, err := s.db.Exec(query,
+		dataset.ID, dataset.Title, dataset.Notes, dataset.URL,
+		dataset.InstitutionName, dataset.Email,
+		arrayToPostgresArray(dataset.Categories),
+		arrayToPostgresArray(dataset.Tags),
+		dataset.CreatedAt, dataset.UpdatedAt,
+	)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to save dataset to postgres")
+		return err
+	}
+
+	return nil
+}
+
+// GetDataset retrieves a dataset by ID
+func (s *PostgresStorage) GetDataset(id string) (*models.Dataset, bool) {
+	query := `
+	SELECT id, title, notes, url, institution_name, email,
+		   categories, tags, created_at, updated_at
+	FROM datasets WHERE id = $1`
+
+	dataset := &models.Dataset{}
+
+	err := s.db.QueryRow(query, id).Scan(
+		&dataset.ID, &dataset.Title, &dataset.Notes, &dataset.URL,
+		&dataset.InstitutionName, &dataset.Email,
+		postgresArrayToSlice(&dataset.Categories),
+		postgresArrayToSlice(&dataset.Tags),
+		&dataset.CreatedAt, &dataset.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, false
+	}
+	if err != nil {
+		log.Error().Err(err).Str("id", id).Msg("Failed to get dataset from postgres")
+		return nil, false
+	}
+
+	return dataset, true
+}
+
+// ListDatasets returns all datasets
+func (s *PostgresStorage) ListDatasets() ([]*models.Dataset, error) {
+	query := `
+	SELECT id, title, notes, url, institution_name, email,
+		   categories, tags, created_at, updated_at
+	FROM datasets
+	ORDER BY created_at DESC`
+
+	rows, err := s.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var datasets []*models.Dataset
+	for rows.Next() {
+		dataset := &models.Dataset{}
+
+		err := rows.Scan(
+			&dataset.ID, &dataset.Title, &dataset.Notes, &dataset.URL,
+			&dataset.InstitutionName, &dataset.Email,
+			postgresArrayToSlice(&dataset.Categories),
+			postgresArrayToSlice(&dataset.Tags),
+			&dataset.CreatedAt, &dataset.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		datasets = append(datasets, dataset)
+	}
+
+	return datasets, nil
+}
+
+// AddItemToDataset adds a lost item to a dataset
+func (s *PostgresStorage) AddItemToDataset(datasetID, itemID string) error {
+	query := `
+	INSERT INTO dataset_items (dataset_id, item_id, added_at)
+	VALUES ($1, $2, $3)
+	ON CONFLICT (dataset_id, item_id) DO NOTHING`
+
+	_, err := s.db.Exec(query, datasetID, itemID, time.Now())
+	if err != nil {
+		log.Error().Err(err).Str("dataset_id", datasetID).Str("item_id", itemID).Msg("Failed to add item to dataset")
+		return err
+	}
+
+	return nil
+}
+
+// RemoveItemFromDataset removes a lost item from a dataset
+func (s *PostgresStorage) RemoveItemFromDataset(datasetID, itemID string) error {
+	query := `DELETE FROM dataset_items WHERE dataset_id = $1 AND item_id = $2`
+
+	_, err := s.db.Exec(query, datasetID, itemID)
+	if err != nil {
+		log.Error().Err(err).Str("dataset_id", datasetID).Str("item_id", itemID).Msg("Failed to remove item from dataset")
+		return err
+	}
+
+	return nil
+}
+
+// GetDatasetWithItems retrieves a dataset with all its associated items
+func (s *PostgresStorage) GetDatasetWithItems(datasetID string) (*models.DatasetWithItems, error) {
+	dataset, found := s.GetDataset(datasetID)
+	if !found {
+		return nil, fmt.Errorf("dataset not found")
+	}
+
+	query := `
+	SELECT li.id, li.title, li.description, li.category, li.location, li.found_date,
+		   li.reporting_date, li.reporting_location,
+		   li.image_url, li.image_key, li.status, li.contact_email, li.contact_phone,
+		   li.processed_by_clip, li.processed_by_qdrant, li.published_on_dane_gov,
+		   li.created_at, li.updated_at
+	FROM lost_items li
+	INNER JOIN dataset_items di ON li.id = di.item_id
+	WHERE di.dataset_id = $1
+	ORDER BY di.added_at DESC`
+
+	rows, err := s.db.Query(query, datasetID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []*models.LostItem
+	for rows.Next() {
+		item := &models.LostItem{}
+		var processedByClip, processedByQdrant, publishedOnDaneGov sql.NullBool
+		var imageKey sql.NullString
+
+		err := rows.Scan(
+			&item.ID, &item.Title, &item.Description, &item.Category, &item.Location,
+			&item.FoundDate, &item.ReportingDate, &item.ReportingLocation,
+			&item.ImageURL, &imageKey, &item.Status, &item.ContactEmail, &item.ContactPhone,
+			&processedByClip, &processedByQdrant, &publishedOnDaneGov,
+			&item.CreatedAt, &item.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		item.ImageKey = imageKey.String
+		item.ProcessedByClip = processedByClip.Bool
+		item.ProcessedByQdrant = processedByQdrant.Bool
+		item.PublishedOnDaneGov = publishedOnDaneGov.Bool
+		items = append(items, item)
+	}
+
+	return &models.DatasetWithItems{
+		Dataset: *dataset,
+		Items:   items,
+	}, nil
+}
+
+// Helper functions for PostgreSQL array handling
+func arrayToPostgresArray(arr []string) interface{} {
+	if len(arr) == 0 {
+		return []string{}
+	}
+	return arr
+}
+
+func postgresArrayToSlice(dest *[]string) interface{} {
+	return dest
 }
