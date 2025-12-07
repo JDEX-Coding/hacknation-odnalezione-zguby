@@ -66,60 +66,6 @@ type DCATDistribution struct {
 	MediaType   string         `json:"dcat:mediaType,omitempty"`
 }
 
-// DatasetRequest represents the request to dane.gov.pl API
-type DatasetRequest struct {
-	Data DatasetData `json:"data"`
-}
-
-// DatasetData wraps the dataset attributes
-type DatasetData struct {
-	Type       string            `json:"type"`
-	Attributes DatasetAttributes `json:"attributes"`
-}
-
-// DatasetAttributes contains the dataset metadata
-type DatasetAttributes struct {
-	Title           string              `json:"title"`
-	Notes           string              `json:"notes"`
-	Category        string              `json:"category"`
-	Status          string              `json:"status"`
-	Visibility      string              `json:"visibility"`
-	UpdateFrequency string              `json:"update_frequency"`
-	Tags            []string            `json:"tags"`
-	License         string              `json:"license_id"`
-	CustomFields    map[string]string   `json:"custom_fields,omitempty"`
-	Resources       []ResourceAttribute `json:"resources,omitempty"`
-	OrganizationID  string              `json:"organization_id,omitempty"`
-	PublicationDate time.Time           `json:"publication_date"`
-}
-
-// ResourceAttribute represents a resource/file attached to the dataset
-type ResourceAttribute struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-	Format      string `json:"format"`
-	URL         string `json:"url"`
-	Size        int64  `json:"size,omitempty"`
-}
-
-// DatasetResponse represents the API response
-type DatasetResponse struct {
-	Data struct {
-		ID         string `json:"id"`
-		Type       string `json:"type"`
-		Attributes struct {
-			Title  string    `json:"title"`
-			Slug   string    `json:"slug"`
-			Status string    `json:"status"`
-			URL    string    `json:"url"`
-			Date   time.Time `json:"created"`
-		} `json:"attributes"`
-	} `json:"data"`
-	Links struct {
-		Self string `json:"self"`
-	} `json:"links"`
-}
-
 // ResourceRequest represents the request to add a resource to a dataset
 type ResourceRequest struct {
 	Data ResourceData `json:"data"`

@@ -78,27 +78,6 @@ func (f *DCATFormatter) FormatToDCAT(item *models.ItemVectorizedEvent) *models.D
 	}
 }
 
-// FormatToDatasetRequest converts to dane.gov.pl dataset creation format (used only if AUTO_CREATE_DATASET=true)
-func (f *DCATFormatter) FormatToDatasetRequest(item *models.ItemVectorizedEvent) *models.DatasetRequest {
-	return &models.DatasetRequest{
-		Data: models.DatasetData{
-			Type: "dataset",
-			Attributes: models.DatasetAttributes{
-				Title:           "Rzeczy Znalezione - " + f.publisherName,
-				Notes:           "Zbiór danych dotyczących rzeczy znalezionych i oczekujących na odbiór",
-				Category:        "society",
-				Status:          "published",
-				Visibility:      "public",
-				UpdateFrequency: "daily",
-				Tags:            []string{"rzeczy znalezione", "lost and found", "zguby"},
-				License:         "cc-zero",
-				OrganizationID:  f.publisherID,
-				PublicationDate: time.Now(),
-			},
-		},
-	}
-}
-
 // FormatToResourceRequest converts an item to a resource request for adding to a dataset
 func (f *DCATFormatter) FormatToResourceRequest(item *models.ItemVectorizedEvent) *models.ResourceRequest {
 	return &models.ResourceRequest{

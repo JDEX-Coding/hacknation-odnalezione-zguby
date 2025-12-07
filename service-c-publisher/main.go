@@ -13,7 +13,6 @@ import (
 
 	"github.com/hacknation/odnalezione-zguby/service-c-publisher/internal/client"
 	"github.com/hacknation/odnalezione-zguby/service-c-publisher/internal/consumer"
-	"github.com/hacknation/odnalezione-zguby/service-c-publisher/internal/formatter"
 	"github.com/hacknation/odnalezione-zguby/service-c-publisher/internal/models"
 )
 
@@ -42,13 +41,6 @@ func main() {
 		config.DaneGovPassword,
 	)
 
-	// Initialize DCAT formatter
-	dcatFormatter := formatter.NewDCATFormatter(
-		config.PublisherName,
-		config.PublisherID,
-		config.BaseURL,
-	)
-
 	// Login to dane.gov.pl
 	ctx := context.Background()
 	log.Info().Msg("Logging in to dane.gov.pl...")
@@ -56,35 +48,14 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to login to dane.gov.pl")
 	}
 
-	// Handle dataset creation if needed
+	// Validate dataset ID is provided
 	datasetID := config.DatasetID
-	if config.AutoCreateDataset && datasetID == "" {
-		log.Info().Msg("AUTO_CREATE_DATASET=true and no DATASET_ID provided, creating new dataset...")
-
-		// Use a dummy event to create dataset structure
-		dummyEvent := &models.ItemVectorizedEvent{
-			ID:    "init",
-			Title: "Initialization",
-		}
-		datasetRequest := dcatFormatter.FormatToDatasetRequest(dummyEvent)
-
-		response, err := daneGovClient.CreateDataset(ctx, datasetRequest)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to create dataset on dane.gov.pl")
-		}
-
-		datasetID = response.Data.ID
-		log.Info().
-			Str("dataset_id", datasetID).
-			Str("url", response.Data.Attributes.URL).
-			Msg("✅ Created new dataset on dane.gov.pl - please save this DATASET_ID to .env")
-	} else if datasetID == "" {
-		log.Fatal().Msg("DATASET_ID is required when AUTO_CREATE_DATASET=false")
+	if datasetID == "" {
+		log.Fatal().Msg("DATASET_ID is required - please set it in .env file")
 	}
 
 	log.Info().
 		Str("dataset_id", datasetID).
-		Bool("auto_create", config.AutoCreateDataset).
 		Msg("Using dataset for resource publishing")
 
 	// Initialize RabbitMQ consumer
@@ -110,39 +81,31 @@ func main() {
 			Str("category", event.Category).
 			Msg("📝 Processing item for publication")
 
-		// Format to resource request
-		resourceRequest := dcatFormatter.FormatToResourceRequest(event)
-
-		// Add resource to dataset
-		response, err := daneGovClient.AddResource(ctx, datasetID, resourceRequest)
-		if err != nil {
-			log.Error().
-				Err(err).
-				Str("item_id", event.ID).
-				Str("dataset_id", datasetID).
-				Msg("Failed to add resource to dane.gov.pl dataset")
-			return err
-		}
+		// TODO: Add resource to dataset when API endpoint is available
+		// Currently the mcod-api backend doesn't support resource creation via API
+		// For now, we just log the item details
+		log.Info().
+			Str("item_id", event.ID).
+			Str("title", event.Title).
+			Str("category", event.Category).
+			Str("location", event.Location).
+			Str("image_url", event.ImageURL).
+			Str("dataset_id", datasetID).
+			Msg("✅ Item processed and logged (TODO: publish to dane.gov.pl when API is ready)")
 
 		// Publish success event back to RabbitMQ
 		publishedEvent := &models.ItemPublishedEvent{
 			ID:              event.ID,
 			DatasetID:       datasetID,
 			PublishedAt:     time.Now(),
-			DaneGovURL:      response.Data.Attributes.URL,
+			DaneGovURL:      "", // TODO: Add URL when resource is actually created
 			PublicationDate: time.Now(),
 		}
 
 		if err := rabbitConsumer.PublishPublishedEvent(ctx, publishedEvent); err != nil {
 			log.Error().Err(err).Msg("Failed to publish success event")
-			// Don't fail - item was already published successfully
+			// Don't fail - item was already processed
 		}
-
-		log.Info().
-			Str("item_id", event.ID).
-			Str("resource_id", response.Data.ID).
-			Str("dataset_id", datasetID).
-			Msg("✅ Successfully added resource to dane.gov.pl dataset")
 
 		return nil
 	}
@@ -183,7 +146,6 @@ type Config struct {
 	PublisherName      string
 	PublisherID        string
 	BaseURL            string
-	AutoCreateDataset  bool
 	DatasetID          string
 }
 
@@ -199,7 +161,6 @@ func loadConfig() *Config {
 		PublisherName:      getEnv("PUBLISHER_NAME", "Urząd Miasta - System Rzeczy Znalezionych"),
 		PublisherID:        getEnv("PUBLISHER_ID", "org-001"),
 		BaseURL:            getEnv("BASE_URL", "http://localhost:8080"),
-		AutoCreateDataset:  getEnvBool("AUTO_CREATE_DATASET", false),
 		DatasetID:          getEnv("DATASET_ID", ""),
 	}
 }
@@ -207,13 +168,6 @@ func loadConfig() *Config {
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
-	}
-	return defaultValue
-}
-
-func getEnvBool(key string, defaultValue bool) bool {
-	if value := os.Getenv(key); value != "" {
-		return value == "true" || value == "1" || value == "yes"
 	}
 	return defaultValue
 }

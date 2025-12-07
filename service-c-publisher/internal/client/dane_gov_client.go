@@ -108,62 +108,9 @@ func (c *DaneGovClient) Login(ctx context.Context) error {
 	return nil
 }
 
-// CreateDataset creates a new dataset on dane.gov.pl (used only if AUTO_CREATE_DATASET=true)
-func (c *DaneGovClient) CreateDataset(ctx context.Context, dataset *models.DatasetRequest) (*models.DatasetResponse, error) {
-	url := fmt.Sprintf("%s/api/datasets", c.baseURL)
-
-	jsonData, err := json.Marshal(dataset)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal dataset: %w", err)
-	}
-
-	log.Debug().
-		Str("url", url).
-		Msg("Creating dataset on dane.gov.pl")
-
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
-
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read response body: %w", err)
-	}
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		log.Error().
-			Int("status", resp.StatusCode).
-			Str("body", string(body)).
-			Msg("Failed to create dataset")
-		return nil, fmt.Errorf("API returned status %d: %s", resp.StatusCode, string(body))
-	}
-
-	var response models.DatasetResponse
-	if err := json.Unmarshal(body, &response); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal response: %w", err)
-	}
-
-	log.Info().
-		Str("dataset_id", response.Data.ID).
-		Msg("Successfully created dataset on dane.gov.pl")
-
-	return &response, nil
-}
-
 // AddResource adds a resource to an existing dataset
 func (c *DaneGovClient) AddResource(ctx context.Context, datasetID string, resource *models.ResourceRequest) (*models.ResourceResponse, error) {
-	url := fmt.Sprintf("%s/api/datasets/%s/resources", c.baseURL, datasetID)
+	url := fmt.Sprintf("%s/api/1.4/datasets/%s/resources", c.baseURL, datasetID)
 
 	jsonData, err := json.Marshal(resource)
 	if err != nil {
