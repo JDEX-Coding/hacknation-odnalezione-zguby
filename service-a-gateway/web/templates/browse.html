@@ -49,7 +49,7 @@
                         hx-get="/browse"
                         hx-trigger="keyup changed delay:500ms, search"
                         hx-target="#items-grid"
-                        hx-include="[name='category'], [name='status']"
+                        hx-include="[name='category'], [name='status'], [name='dataset']"
                         hx-push-url="true"
                     >
                     <svg class="absolute left-4 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,7 +64,7 @@
                 hx-get="/browse"
                 hx-trigger="change"
                 hx-target="#items-grid"
-                hx-include="[name='search'], [name='status']"
+                hx-include="[name='search'], [name='status'], [name='dataset']"
                 hx-push-url="true"
             >
                 <option value="">Wszystkie kategorie</option>
@@ -84,13 +84,28 @@
                 hx-get="/browse"
                 hx-trigger="change"
                 hx-target="#items-grid"
-                hx-include="[name='search'], [name='category']"
+                hx-include="[name='search'], [name='category'], [name='dataset']"
                 hx-push-url="true"
             >
                 <option value="">Wszystkie statusy</option>
                 <option value="pending">Oczekujące</option>
                 <option value="published">Opublikowane</option>
                 <option value="archived">Archiwalne</option>
+            </select>
+
+            <select
+                name="dataset"
+                class="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                hx-get="/browse"
+                hx-trigger="change"
+                hx-target="#items-grid"
+                hx-include="[name='search'], [name='category'], [name='status']"
+                hx-push-url="true"
+            >
+                <option value="">Wszystkie datasety</option>
+                {{range .Datasets}}
+                <option value="{{.ID}}">{{.Title}}</option>
+                {{end}}
             </select>
 
             <!-- Loading Indicator -->

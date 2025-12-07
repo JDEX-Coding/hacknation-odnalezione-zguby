@@ -232,6 +232,8 @@ func setupRouter(h *handlers.Handler, staticPath string) *mux.Router {
 	r.HandleFunc("/", h.HomeHandler).Methods("GET")
 	r.HandleFunc("/create", h.CreateFormHandler).Methods("GET")
 	r.HandleFunc("/create", h.CreateHandler).Methods("POST")
+	r.HandleFunc("/create-dataset", h.CreateDatasetFormHandler).Methods("GET")
+	r.HandleFunc("/create-dataset", h.CreateDatasetHandler).Methods("POST")
 	r.HandleFunc("/browse", h.BrowseHandler).Methods("GET")
 	r.HandleFunc("/zguba/{id}", h.ItemDetailHandler).Methods("GET")
 	r.HandleFunc("/search/semantic", h.SemanticSearchHandler).Methods("POST")

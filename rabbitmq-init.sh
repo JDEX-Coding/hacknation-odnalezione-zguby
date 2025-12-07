@@ -65,6 +65,11 @@ create_resource "PUT" "/queues/%2F/q.lost-items.publish" \
     '{"durable":true,"arguments":{}}' \
     "Queue 'q.lost-items.publish' (Optional)"
 
+# Dataset processing queue (Gateway -> Legacy Data Converter)
+create_resource "PUT" "/queues/%2F/q.datasets.process" \
+    '{"durable":true,"arguments":{}}' \
+    "Queue 'q.datasets.process' (Gateway -> Legacy Data Converter)"
+
 # Create Bindings
 # Gateway publishes with routing key 'item.submitted' -> CLIP consumes
 create_resource "POST" "/bindings/%2F/e/lost-found.events/q/q.lost-items.embed" \
@@ -81,9 +86,15 @@ create_resource "POST" "/bindings/%2F/e/lost-found.events/q/q.lost-items.publish
     '{"routing_key":"item.vectorized"}' \
     "Binding 'q.lost-items.publish' -> 'item.vectorized'"
 
+# Binding for dataset processing
+create_resource "POST" "/bindings/%2F/e/lost-found.events/q/q.datasets.process" \
+    '{"routing_key":"dataset.submitted"}' \
+    "Binding 'q.datasets.process' -> 'dataset.submitted'"
+
 echo "---------------------------------------------------"
 echo "✨ RabbitMQ Event Flow:"
 echo "   Gateway → [item.submitted] → q.lost-items.embed → CLIP Service"
 echo "   CLIP Service → [item.embedded] → q.lost-items.ingest → Qdrant Service"
+echo "   Gateway → [dataset.submitted] → q.datasets.process → Legacy Data Converter"
 echo "---------------------------------------------------"
 echo "✨ RabbitMQ init complete!"

@@ -118,7 +118,7 @@ func NewHandler(
 	}
 
 	// Helper to create page templates
-	pages := []string{"index.html", "create.html", "browse.html", "detail.html"}
+	pages := []string{"index.html", "create.html", "create-dataset.html", "browse.html", "detail.html"}
 	templates := make(map[string]*template.Template)
 
 	for _, page := range pages {
@@ -353,11 +353,21 @@ func (h *Handler) BrowseHandler(w http.ResponseWriter, r *http.Request) {
 	query := strings.ToLower(r.URL.Query().Get("search"))
 	category := strings.ToLower(r.URL.Query().Get("category"))
 	status := strings.ToLower(r.URL.Query().Get("status"))
+	datasetID := r.URL.Query().Get("dataset")
 
 	// Filter items
 	filteredItems := make([]*models.LostItem, 0)
 
-	allItems, err := h.items.List()
+	var allItems []*models.LostItem
+	var err error
+
+	// If dataset filter is specified, get items only from that dataset
+	if datasetID != "" {
+		allItems, err = h.items.GetItemsByDataset(datasetID)
+	} else {
+		allItems, err = h.items.List()
+	}
+
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to list items")
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
@@ -388,9 +398,18 @@ func (h *Handler) BrowseHandler(w http.ResponseWriter, r *http.Request) {
 		filteredItems = append(filteredItems, item)
 	}
 
+	// Get all datasets for the filter dropdown
+	datasets, err := h.items.ListDatasets()
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to list datasets")
+		// Continue without datasets filter
+		datasets = []*models.Dataset{}
+	}
+
 	data := map[string]interface{}{
-		"Title": "Przeglądaj Zguby",
-		"Items": filteredItems,
+		"Title":    "Przeglądaj Zguby",
+		"Items":    filteredItems,
+		"Datasets": datasets,
 	}
 
 	// Get the browse template
@@ -749,4 +768,182 @@ func (h *Handler) HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(health)
+}
+
+// CreateDatasetFormHandler renders the dataset upload form
+func (h *Handler) CreateDatasetFormHandler(w http.ResponseWriter, r *http.Request) {
+	tmpl, ok := h.templates["create-dataset.html"]
+	if !ok {
+		log.Error().Msg("Template create-dataset.html not found")
+		http.Error(w, "Template not found", http.StatusInternalServerError)
+		return
+	}
+
+	data := map[string]interface{}{
+		"Title": "Dodaj Dataset",
+	}
+
+	tmpl.ExecuteTemplate(w, "base.html", data)
+}
+
+// CreateDatasetHandler handles dataset upload and processing
+func (h *Handler) CreateDatasetHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	// Parse multipart form (max 50MB)
+	if err := r.ParseMultipartForm(50 << 20); err != nil {
+		log.Error().Err(err).Msg("Failed to parse multipart form")
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	// Extract form fields
+	title := r.FormValue("title")
+	notes := r.FormValue("notes")
+	institutionName := r.FormValue("institution_name")
+	email := r.FormValue("email")
+	categoriesStr := r.FormValue("categories")
+	tagsStr := r.FormValue("tags")
+	createSeparateDataset := r.FormValue("create_separate_dataset") == "true"
+
+	// Validate required fields
+	if title == "" || notes == "" || institutionName == "" || email == "" {
+		http.Error(w, "Missing required fields", http.StatusBadRequest)
+		return
+	}
+
+	// Parse categories and tags
+	var categories, tags []string
+	if categoriesStr != "" {
+		for _, cat := range strings.Split(categoriesStr, ",") {
+			categories = append(categories, strings.TrimSpace(cat))
+		}
+	}
+	if tagsStr != "" {
+		for _, tag := range strings.Split(tagsStr, ",") {
+			tags = append(tags, strings.TrimSpace(tag))
+		}
+	}
+
+	// Get uploaded file
+	file, header, err := r.FormFile("document")
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to get uploaded file")
+		http.Error(w, "Failed to get uploaded file", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	log.Info().
+		Str("filename", header.Filename).
+		Int64("size", header.Size).
+		Str("content_type", header.Header.Get("Content-Type")).
+		Msg("Received dataset file upload")
+
+	// Read file content
+	fileContent, err := io.ReadAll(file)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to read file content")
+		http.Error(w, "Failed to read file", http.StatusInternalServerError)
+		return
+	}
+
+	// Create dataset record
+	datasetID := uuid.New().String()
+	
+	// Only save dataset to database if checkbox is checked
+	if createSeparateDataset {
+		dataset := &models.Dataset{
+			ID:              datasetID,
+			Title:           title,
+			Notes:           notes,
+			URL:             fmt.Sprintf("http://localhost:8080/api/datasets/%s/items.json", datasetID),
+			InstitutionName: institutionName,
+			Email:           email,
+			Categories:      categories,
+			Tags:            tags,
+		}
+
+		// Save dataset to database
+		if err := h.items.SaveDataset(dataset); err != nil {
+			log.Error().Err(err).Msg("Failed to save dataset")
+			http.Error(w, "Failed to save dataset", http.StatusInternalServerError)
+			return
+		}
+
+		log.Info().Str("dataset_id", datasetID).Msg("Dataset saved to database")
+	} else {
+		log.Info().Str("dataset_id", datasetID).Msg("Dataset created for processing only (not saved to database)")
+	}
+
+	// Determine file type
+	fileExtension := strings.ToLower(filepath.Ext(header.Filename))
+	contentType := header.Header.Get("Content-Type")
+
+	// Publish message to RabbitMQ for processing
+	event := map[string]interface{}{
+		"dataset_id":              datasetID,
+		"title":                   title,
+		"notes":                   notes,
+		"institution_name":        institutionName,
+		"email":                   email,
+		"categories":              categories,
+		"tags":                    tags,
+		"file_name":               header.Filename,
+		"file_extension":          fileExtension,
+		"content_type":            contentType,
+		"file_size":               header.Size,
+		"file_content":            base64.StdEncoding.EncodeToString(fileContent),
+		"create_separate_dataset": createSeparateDataset,
+		"timestamp":               time.Now().Format(time.RFC3339),
+	}
+
+	eventJSON, err := json.Marshal(event)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to marshal dataset event")
+		http.Error(w, "Failed to process dataset", http.StatusInternalServerError)
+		return
+	}
+
+	// Publish to RabbitMQ with routing key for dataset processing
+	if err := h.rabbitMQ.PublishWithKey(ctx, eventJSON, "dataset.submitted"); err != nil {
+		log.Error().Err(err).Msg("Failed to publish dataset to RabbitMQ")
+		http.Error(w, "Failed to publish dataset", http.StatusInternalServerError)
+		return
+	}
+
+	log.Info().
+		Str("dataset_id", datasetID).
+		Str("routing_key", "dataset.submitted").
+		Msg("Dataset published to RabbitMQ for processing")
+
+	// Return success response
+	w.Header().Set("Content-Type", "text/html")
+	w.WriteHeader(http.StatusOK)
+
+	successHTML := fmt.Sprintf(`
+		<div class="fixed top-4 right-4 bg-green-50 border-l-4 border-green-500 p-4 rounded shadow-lg z-50 max-w-md">
+			<div class="flex items-start">
+				<svg class="w-6 h-6 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+				</svg>
+				<div>
+					<h3 class="text-green-800 font-semibold">Dataset przesłany!</h3>
+					<p class="text-green-700 text-sm mt-1">
+						Dokument jest przetwarzany. Możesz śledzić postęp w panelu datasetu.
+					</p>
+					<div class="mt-3">
+						<a href="/datasets/%s" class="text-green-600 hover:text-green-700 text-sm font-medium">
+							Zobacz dataset →
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script>
+			setTimeout(() => window.location.href = "/datasets/%s", 2000);
+		</script>
+	`, datasetID, datasetID)
+
+	w.Write([]byte(successHTML))
 }

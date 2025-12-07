@@ -84,6 +84,39 @@ func (p *RabbitMQPublisher) PublishItemSubmitted(ctx context.Context, event inte
 	return p.publish(ctx, "item.submitted", event)
 }
 
+// PublishWithKey publishes a message with a custom routing key
+func (p *RabbitMQPublisher) PublishWithKey(ctx context.Context, payload []byte, routingKey string) error {
+	// Add timeout to context
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	err := p.channel.PublishWithContext(
+		ctx,
+		p.exchangeName, // exchange
+		routingKey,     // routing key
+		false,          // mandatory
+		false,          // immediate
+		amqp.Publishing{
+			ContentType:  "application/json",
+			DeliveryMode: amqp.Persistent, // persistent messages
+			Body:         payload,
+			Timestamp:    time.Now(),
+			MessageId:    fmt.Sprintf("%d", time.Now().UnixNano()),
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to publish message: %w", err)
+	}
+
+	log.Info().
+		Str("routing_key", routingKey).
+		Str("exchange", p.exchangeName).
+		Int("body_size", len(payload)).
+		Msg("Message published to RabbitMQ")
+
+	return nil
+}
+
 // publish publishes a message to the exchange with the given routing key
 func (p *RabbitMQPublisher) publish(ctx context.Context, routingKey string, payload interface{}) error {
 	body, err := json.Marshal(payload)

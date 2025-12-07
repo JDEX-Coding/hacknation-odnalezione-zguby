@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lost_items>
+  <item>
+    <title>Portfel męski</title>
+    <description>Czarny skórzany portfel z dokumentami</description>
+    <category>portfele</category>
+    <location>ul. Marszałkowska 10</location>
+    <found_date>2024-01-15</found_date>
+    <contact>
+      <email>biuro@urzad.pl</email>
+      <phone>22-123-45-67</phone>
+    </contact>
+  </item>
+  <item>
+    <title>Telefon komórkowy</title>
+    <description>Samsung Galaxy S21</description>
+    <category>telefony</category>
+    <location>Dworzec Centralny</location>
+    <found_date>2024-01-14</found_date>
+    <contact>
+      <email>dworzec@pkp.pl</email>
+    </contact>
+  </item>
+  <item>
+    <title>Klucze</title>
+    <description>Pęk kluczy z breloczkiem</description>
+    <category>klucze</category>
+    <location>Park Łazienkowski</location>
+    <found_date>2024-01-13</found_date>
+    <contact>
+      <email>park@warszawa.pl</email>
+      <phone>22-555-66-77</phone>
+    </contact>
+  </item>
+</lost_items>

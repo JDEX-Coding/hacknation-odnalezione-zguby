@@ -1,0 +1,28 @@
+[
+  {
+    "title": "Portfel skórzany",
+    "description": "Czarny portfel z dokumentami osobistymi i kartami bankowymi",
+    "category": "portfele",
+    "location": "ul. Nowy Świat 15, Warszawa",
+    "found_date": "2024-01-15",
+    "contact_email": "biuro@urzad.pl",
+    "contact_phone": "123456789"
+  },
+  {
+    "title": "Telefon iPhone 13",
+    "description": "iPhone 13 w białym etui, z naklejką",
+    "category": "telefony",
+    "location": "Dworzec Główny PKP",
+    "found_date": "2024-01-14",
+    "contact_email": "dworzec@pkp.pl"
+  },
+  {
+    "title": "Dokumenty samochodowe",
+    "description": "Dowód rejestracyjny i prawo jazdy",
+    "category": "dokumenty",
+    "location": "Parking przy ul. Długiej",
+    "found_date": "2024-01-13",
+    "contact_email": "parking@miasto.pl",
+    "contact_phone": "987654321"
+  }
+]

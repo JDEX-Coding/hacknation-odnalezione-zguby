@@ -1,0 +1,325 @@
+{{define "content"}}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-gray-900 mb-2">Dodaj Dataset ze Starego Dokumentu</h1>
+        <p class="text-gray-600">
+            Prześlij plik zawierający dane o zgłoszeniach (PDF, HTML, XML, CSV, JSON). 
+            System automatycznie przetworzy dokument i wyodrębni informacje o znalezionych przedmiotach.
+        </p>
+    </div>
+
+    <!-- Form -->
+    <div class="bg-white rounded-xl shadow-lg p-8">
+        <form
+            id="dataset-form"
+            hx-post="/create-dataset"
+            hx-encoding="multipart/form-data"
+            hx-indicator="#submit-indicator"
+            class="space-y-6"
+        >
+            <!-- Dataset Metadata -->
+            <div class="space-y-6 mb-8 pb-8 border-b border-gray-200">
+                <h2 class="text-xl font-semibold text-gray-900">Informacje o datasecie</h2>
+                
+                <!-- Title -->
+                <div>
+                    <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
+                        Tytuł datasetu <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        id="title"
+                        name="title"
+                        required
+                        placeholder="np. Rejestr rzeczy znalezionych 2025"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+
+                <!-- Notes -->
+                <div>
+                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">
+                        Opis datasetu <span class="text-red-500">*</span>
+                    </label>
+                    <textarea
+                        id="notes"
+                        name="notes"
+                        rows="3"
+                        required
+                        placeholder="Krótki opis datasetu, np. Baza danych zgłoszonych rzeczy znalezionych w 2025 roku"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    ></textarea>
+                </div>
+
+                <!-- Institution Name -->
+                <div>
+                    <label for="institution_name" class="block text-sm font-medium text-gray-700 mb-2">
+                        Nazwa instytucji <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        id="institution_name"
+                        name="institution_name"
+                        required
+                        placeholder="np. Urząd Miasta"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+
+                <!-- Email -->
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                        Email kontaktowy <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        required
+                        placeholder="kontakt@urzad.pl"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                </div>
+
+                <!-- Categories -->
+                <div>
+                    <label for="categories" class="block text-sm font-medium text-gray-700 mb-2">
+                        Kategorie (rozdzielone przecinkami)
+                    </label>
+                    <input
+                        type="text"
+                        id="categories"
+                        name="categories"
+                        placeholder="np. transport, inne"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <p class="text-xs text-gray-500 mt-1">Wpisz kategorie oddzielone przecinkami</p>
+                </div>
+
+                <!-- Tags -->
+                <div>
+                    <label for="tags" class="block text-sm font-medium text-gray-700 mb-2">
+                        Tagi (rozdzielone przecinkami)
+                    </label>
+                    <input
+                        type="text"
+                        id="tags"
+                        name="tags"
+                        placeholder="np. rzeczy znalezione, 2025"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <p class="text-xs text-gray-500 mt-1">Wpisz tagi oddzielone przecinkami</p>
+                </div>
+
+                <!-- Create Separate Dataset Checkbox -->
+                <div class="pt-4 border-t border-gray-200">
+                    <label class="flex items-start space-x-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            id="create_separate_dataset"
+                            name="create_separate_dataset"
+                            value="true"
+                            checked
+                            class="mt-1 w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                        />
+                        <div class="flex-1">
+                            <span class="text-sm font-medium text-gray-900">Utwórz oddzielny dataset w bazie danych</span>
+                            <p class="text-xs text-gray-500 mt-1">
+                                Jeśli zaznaczone, system utworzy instancję datasetu w bazie danych i powiąże z nim wszystkie znalezione przedmioty. 
+                                Umożliwi to filtrowanie zgub według tego datasetu w przeglądarce.
+                            </p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- File Upload Section -->
+            <div class="space-y-4">
+                <h2 class="text-xl font-semibold text-gray-900">Dokument źródłowy</h2>
+                
+                <div
+                    id="file-upload-zone"
+                    class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors cursor-pointer"
+                    onclick="document.getElementById('document').click()"
+                >
+                    <div class="space-y-4">
+                        <div
+                            class="mx-auto w-24 h-24 bg-green-50 rounded-full flex items-center justify-center"
+                        >
+                            <svg
+                                class="w-12 h-12 text-green-600"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                ></path>
+                            </svg>
+                        </div>
+
+                        <div>
+                            <span class="text-green-600 hover:text-green-700 font-medium">
+                                Kliknij aby wybrać dokument
+                            </span>
+                            <p class="text-sm text-gray-500 mt-1">
+                                lub przeciągnij i upuść plik tutaj
+                            </p>
+                        </div>
+
+                        <p class="text-xs text-gray-400">
+                            Obsługiwane formaty: PDF, HTML, XML, CSV, JSON, TXT (maks. 50MB)
+                        </p>
+                    </div>
+
+                    <input
+                        type="file"
+                        id="document"
+                        name="document"
+                        accept=".pdf,.html,.htm,.xml,.csv,.json,.txt"
+                        required
+                        class="hidden"
+                        onchange="handleFileSelect(event)"
+                    />
+                </div>
+
+                <!-- File Preview -->
+                <div id="file-preview" class="hidden mt-4 p-4 bg-gray-50 rounded-lg">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <svg
+                                class="w-10 h-10 text-gray-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                ></path>
+                            </svg>
+                            <div>
+                                <p id="file-name" class="text-sm font-medium text-gray-900"></p>
+                                <p id="file-size" class="text-xs text-gray-500"></p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onclick="clearFile()"
+                            class="text-red-500 hover:text-red-700"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"
+                                ></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Processing Info -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="flex">
+                    <svg
+                        class="w-5 h-5 text-blue-600 mt-0.5 mr-3"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        ></path>
+                    </svg>
+                    <div class="text-sm text-blue-800">
+                        <p class="font-medium mb-1">Jak to działa?</p>
+                        <ul class="list-disc list-inside space-y-1 text-blue-700">
+                            <li>System automatycznie przetworzy przesłany dokument</li>
+                            <li>AI wyodrębni informacje o znalezionych przedmiotach</li>
+                            <li>Każdy przedmiot zostanie dodany jako osobne zgłoszenie</li>
+                            <li>Dataset zostanie utworzony i gotowy do publikacji</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                <a
+                    href="/"
+                    class="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                >
+                    Anuluj
+                </a>
+
+                <button
+                    type="submit"
+                    class="bg-green-600 text-white hover:bg-green-700 px-8 py-3 rounded-lg font-medium transition-all transform hover:scale-105 shadow-lg inline-flex items-center"
+                >
+                    <span id="submit-text">Prześlij i Przetwórz</span>
+                    <div
+                        id="submit-indicator"
+                        class="htmx-indicator ml-3 spinner"
+                    ></div>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (file) {
+            document.getElementById('file-preview').classList.remove('hidden');
+            document.getElementById('file-upload-zone').classList.add('border-green-500', 'bg-green-50');
+            document.getElementById('file-name').textContent = file.name;
+            
+            const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            document.getElementById('file-size').textContent = `${sizeMB} MB`;
+        }
+    }
+
+    function clearFile() {
+        document.getElementById('document').value = '';
+        document.getElementById('file-preview').classList.add('hidden');
+        document.getElementById('file-upload-zone').classList.remove('border-green-500', 'bg-green-50');
+    }
+
+    // Drag and drop functionality
+    const uploadZone = document.getElementById('file-upload-zone');
+    
+    uploadZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadZone.classList.add('border-green-500', 'bg-green-50');
+    });
+    
+    uploadZone.addEventListener('dragleave', () => {
+        uploadZone.classList.remove('border-green-500', 'bg-green-50');
+    });
+    
+    uploadZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadZone.classList.remove('border-green-500', 'bg-green-50');
+        
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            document.getElementById('document').files = e.dataTransfer.files;
+            handleFileSelect({ target: { files: [file] } });
+        }
+    });
+</script>
+
+{{end}}

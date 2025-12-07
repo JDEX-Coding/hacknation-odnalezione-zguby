@@ -408,6 +408,52 @@ func (s *PostgresStorage) GetDatasetWithItems(datasetID string) (*models.Dataset
 	}, nil
 }
 
+// GetItemsByDataset retrieves all items associated with a specific dataset
+func (s *PostgresStorage) GetItemsByDataset(datasetID string) ([]*models.LostItem, error) {
+	query := `
+	SELECT li.id, li.title, li.description, li.category, li.location, li.found_date,
+		   li.reporting_date, li.reporting_location,
+		   li.image_url, li.image_key, li.status, li.contact_email, li.contact_phone,
+		   li.processed_by_clip, li.processed_by_qdrant, li.published_on_dane_gov,
+		   li.created_at, li.updated_at
+	FROM lost_items li
+	INNER JOIN dataset_items di ON li.id = di.item_id
+	WHERE di.dataset_id = $1
+	ORDER BY di.added_at DESC`
+
+	rows, err := s.db.Query(query, datasetID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var items []*models.LostItem
+	for rows.Next() {
+		item := &models.LostItem{}
+		var processedByClip, processedByQdrant, publishedOnDaneGov sql.NullBool
+		var imageKey sql.NullString
+
+		err := rows.Scan(
+			&item.ID, &item.Title, &item.Description, &item.Category, &item.Location,
+			&item.FoundDate, &item.ReportingDate, &item.ReportingLocation,
+			&item.ImageURL, &imageKey, &item.Status, &item.ContactEmail, &item.ContactPhone,
+			&processedByClip, &processedByQdrant, &publishedOnDaneGov,
+			&item.CreatedAt, &item.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		item.ImageKey = imageKey.String
+		item.ProcessedByClip = processedByClip.Bool
+		item.ProcessedByQdrant = processedByQdrant.Bool
+		item.PublishedOnDaneGov = publishedOnDaneGov.Bool
+		items = append(items, item)
+	}
+
+	return items, nil
+}
+
 // Helper functions for PostgreSQL array handling
 func arrayToPostgresArray(arr []string) interface{} {
 	if len(arr) == 0 {
