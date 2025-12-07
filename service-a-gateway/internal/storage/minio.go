@@ -139,17 +139,29 @@ func (s *MinIOStorage) DeleteImage(ctx context.Context, imageURL string) error {
 
 // GetImageURL returns the public URL for an image
 func (s *MinIOStorage) GetImageURL(objectKey string) string {
+	var url string
+
 	// If public endpoint already has a scheme (http:// or https://), use it directly
 	if strings.Contains(s.publicEndpoint, "://") {
-		return fmt.Sprintf("%s/%s/%s", s.publicEndpoint, s.bucketName, objectKey)
+		url = fmt.Sprintf("%s/%s/%s", s.publicEndpoint, s.bucketName, objectKey)
+	} else {
+		// Otherwise fall back to useSSL setting
+		protocol := "http"
+		if s.useSSL {
+			protocol = "https"
+		}
+		url = fmt.Sprintf("%s://%s/%s/%s", protocol, s.publicEndpoint, s.bucketName, objectKey)
 	}
 
-	// Otherwise fall back to useSSL setting
-	protocol := "http"
-	if s.useSSL {
-		protocol = "https"
-	}
-	return fmt.Sprintf("%s://%s/%s/%s", protocol, s.publicEndpoint, s.bucketName, objectKey)
+	log.Debug().
+		Str("object_key", objectKey).
+		Str("public_endpoint", s.publicEndpoint).
+		Str("bucket", s.bucketName).
+		Bool("use_ssl", s.useSSL).
+		Str("generated_url", url).
+		Msg("GetImageURL called")
+
+	return url
 }
 
 // GetKeyFromURL attempts to extract the object key from a full URL
