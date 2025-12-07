@@ -37,29 +37,29 @@ Create a `.env` file based on `.env.example`:
 #### Required Settings
 
 ```env
-# dane.gov.pl API credentials
+# dane.gov.pl API (required)
 DANE_GOV_API_URL=http://localhost:8000
 DANE_GOV_EMAIL=admin@mcod.local
 DANE_GOV_PASSWORD=your_password_here
 
-# Dataset configuration
-DATASET_ID=abc-123-def               # Required if AUTO_CREATE_DATASET=false
-AUTO_CREATE_DATASET=false            # Set to true to auto-create dataset
+# Dataset (one of these required)
+DATASET_ID=abc-123-def               # Existing dataset ID, OR
+AUTO_CREATE_DATASET=true             # Auto-create on first run
 ```
 
 #### Optional Settings
 
 ```env
-# RabbitMQ
-RABBITMQ_URL=amqp://admin:admin123@localhost:5672/
-RABBITMQ_EXCHANGE=lost-found.events
-RABBITMQ_QUEUE=q.lost-items.publish
-RABBITMQ_ROUTING_KEY=item.vectorized
-
 # Publisher info
 PUBLISHER_NAME=Urząd Miasta - System Rzeczy Znalezionych
 PUBLISHER_ID=org-001
 BASE_URL=http://localhost:8080
+
+# RabbitMQ (defaults shown)
+RABBITMQ_URL=amqp://admin:admin123@localhost:5672/
+RABBITMQ_EXCHANGE=lost-found.events
+RABBITMQ_QUEUE=q.lost-items.publish
+RABBITMQ_ROUTING_KEY=item.vectorized
 ```
 
 ## Workflow

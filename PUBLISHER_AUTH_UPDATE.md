@@ -66,7 +66,7 @@ func (c *DaneGovClient) Login(ctx context.Context) error {
 ```env
 # dane.gov.pl API Login (for Service C Publisher)
 DANE_GOV_API_URL=http://localhost:8000
-DANE_GOV_EMAIL=admin@mcod.local
+DANE_GOV_EMAIL=admin2@mcod.local
 DANE_GOV_PASSWORD=Hacknation-2025
 PUBLISHER_ID=org-001
 ```

@@ -3,7 +3,7 @@
 
 param(
     [string]$ApiUrl = "http://localhost:8000",
-    [string]$Email = "admin@mcod.local",
+    [string]$Email = "admin2@mcod.local",
     [string]$Password = "Hacknation-2025"
 )
 

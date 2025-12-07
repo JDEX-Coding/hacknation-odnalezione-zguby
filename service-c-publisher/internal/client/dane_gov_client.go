@@ -60,7 +60,7 @@ func (c *DaneGovClient) Login(ctx context.Context) error {
 
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return fmt.Errorf("failed to create login request: %w", err)
+		return fmt.Errorf("failed to create login request for %s: %w", url, err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")

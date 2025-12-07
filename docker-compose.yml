@@ -205,6 +205,7 @@ services:
         restart: unless-stopped
         networks:
             - odnalezione-network
+            - otwartedane_backend_backend
 
 volumes:
     rabbitmq_data:
@@ -221,3 +222,5 @@ volumes:
 networks:
     odnalezione-network:
         driver: bridge
+    otwartedane_backend_backend:
+        external: true

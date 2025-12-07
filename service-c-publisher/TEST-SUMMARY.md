@@ -142,7 +142,7 @@ The Publisher service (`service-c-publisher`) is configured to:
 **Configuration:**
 ```env
 DANE_GOV_API_URL=http://localhost:8000
-DANE_GOV_EMAIL=admin@mcod.local
+DANE_GOV_EMAIL=admin2@mcod.local
 DANE_GOV_PASSWORD=Hacknation-2025
 ```
 

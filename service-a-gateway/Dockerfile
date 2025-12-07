@@ -40,7 +40,6 @@ COPY --from=builder /app/gateway /app/gateway
 
 # Copy templates and static files
 COPY --chown=app:app web/templates /app/web/templates
-COPY --chown=app:app web/static /app/web/static
 
 # Switch to non-root user
 USER app
