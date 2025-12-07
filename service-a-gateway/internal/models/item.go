@@ -15,6 +15,7 @@ type LostItem struct {
 	ReportingDate      time.Time `json:"reporting_date"`
 	ReportingLocation  string    `json:"reporting_location"`
 	ImageURL           string    `json:"image_url"`
+	ImageKey           string    `json:"image_key"`
 	Status             string    `json:"status"` // pending, published, archived
 	ProcessedByClip    bool      `json:"processed_by_clip"`
 	ProcessedByQdrant  bool      `json:"processed_by_qdrant"`

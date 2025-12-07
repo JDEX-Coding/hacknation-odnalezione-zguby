@@ -330,6 +330,23 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, `<div class="alert alert-success">Zguba została dodana pomyślnie!</div>`)
 }
 
+// fixItemImageURL updates the item's ImageURL based on current MinIO config
+func (h *Handler) fixItemImageURL(item *models.LostItem) {
+	if item.ImageURL == "" {
+		return
+	}
+
+	// If key is missing, try to extract it from the URL
+	if item.ImageKey == "" {
+		item.ImageKey = h.storage.GetKeyFromURL(item.ImageURL)
+	}
+
+	// If we have a key (either existed or extracted), regenerate the URL
+	if item.ImageKey != "" {
+		item.ImageURL = h.storage.GetImageURL(item.ImageKey)
+	}
+}
+
 // BrowseHandler shows list of all lost items
 func (h *Handler) BrowseHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse query params
@@ -348,6 +365,9 @@ func (h *Handler) BrowseHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, item := range allItems {
+		// Fix Image URL for current environment
+		h.fixItemImageURL(item)
+
 		// Filter by search query
 		if query != "" && !strings.Contains(strings.ToLower(item.Title), query) &&
 			!strings.Contains(strings.ToLower(item.Description), query) &&
@@ -408,6 +428,9 @@ func (h *Handler) ItemDetailHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Item not found", http.StatusNotFound)
 		return
 	}
+
+	// Fix Image URL for current environment
+	h.fixItemImageURL(item)
 
 	data := map[string]interface{}{
 		"Title": item.Title,
