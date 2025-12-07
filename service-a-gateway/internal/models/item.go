@@ -45,6 +45,7 @@ type ItemSubmittedEvent struct {
 	ReportingDate     time.Time `json:"reporting_date"`
 	ReportingLocation string    `json:"reporting_location"`
 	ImageURL          string    `json:"image_url"`
+	ImageKey          string    `json:"image_key"`
 	ContactEmail      string    `json:"contact_email"`
 	ContactPhone      string    `json:"contact_phone"`
 	Timestamp         time.Time `json:"timestamp"`

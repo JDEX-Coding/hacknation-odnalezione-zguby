@@ -238,6 +238,7 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// If imageUrl is not provided from AI analysis, try to get it from form file upload
+	var imageKey string
 	if imageURL == "" {
 		file, header, err := r.FormFile("image")
 		if err != nil {
@@ -256,12 +257,15 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 
 		// Upload to MinIO
 		ctx := r.Context()
-		imageURL, err = h.storage.UploadImage(ctx, file, header.Filename, contentType, header.Size)
+		imageKey, imageURL, err = h.storage.UploadImage(ctx, file, header.Filename, contentType, header.Size)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to upload image")
 			http.Error(w, "Failed to upload image", http.StatusInternalServerError)
 			return
 		}
+	} else {
+		// Image URL provided (from AI suggestion), extract key
+		imageKey = h.storage.GetKeyFromURL(imageURL)
 	}
 
 	// Create lost item
@@ -303,6 +307,7 @@ func (h *Handler) CreateHandler(w http.ResponseWriter, r *http.Request) {
 		ReportingDate:     item.ReportingDate,
 		ReportingLocation: item.ReportingLocation,
 		ImageURL:          item.ImageURL,
+		ImageKey:          imageKey, // Pass the key explicitly
 		ContactEmail:      item.ContactEmail,
 		ContactPhone:      item.ContactPhone,
 		Timestamp:         now,
@@ -475,7 +480,7 @@ func (h *Handler) AnalyzeImageHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Upload original image to MinIO for Service B (Python Worker) to process later
 	imageReader := bytes.NewReader(imageBytes)
-	imageURL, err := h.storage.UploadImage(ctx, imageReader, header.Filename, contentType, int64(len(imageBytes)))
+	_, imageURL, err := h.storage.UploadImage(ctx, imageReader, header.Filename, contentType, int64(len(imageBytes)))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to upload image to MinIO")
 		// Don't fail the request - analysis was successful
@@ -540,7 +545,7 @@ func (h *Handler) AnalyzeImageFormHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	// Upload image to MinIO for Service B (Python Worker)
-	imageURL, err := h.storage.UploadImage(ctx, bytes.NewReader(fileBytes), header.Filename, "image/jpeg", int64(len(fileBytes)))
+	_, imageURL, err := h.storage.UploadImage(ctx, bytes.NewReader(fileBytes), header.Filename, "image/jpeg", int64(len(fileBytes)))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to upload image to MinIO")
 		// Continue - analysis was successful
