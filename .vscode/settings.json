@@ -4,6 +4,7 @@
         "dokploy",
         "hacknation",
         "healthcheck",
+        "JDEX",
         "qdrant",
         "rabbitmq",
         "traefik",
