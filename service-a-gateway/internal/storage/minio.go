@@ -41,7 +41,7 @@ func NewMinIOStorage(endpoint, publicEndpoint, accessKey, secretKey, bucketName 
 
 	// Clean public endpoint: strip trailing slash and whitespace/quotes
 	publicEndpoint = strings.TrimSpace(publicEndpoint)
-	publicEndpoint = strings.Trim(publicEndpoint, `"'`)
+	publicEndpoint = strings.Trim(publicEndpoint, `"'=`)
 	publicEndpoint = strings.TrimSuffix(publicEndpoint, "/")
 
 	storage := &MinIOStorage{
@@ -139,29 +139,27 @@ func (s *MinIOStorage) DeleteImage(ctx context.Context, imageURL string) error {
 
 // GetImageURL returns the public URL for an image
 func (s *MinIOStorage) GetImageURL(objectKey string) string {
-	var url string
+	// Clean endpoint again just to be safe (runtime sanitization)
+	cleanEndpoint := strings.Trim(s.publicEndpoint, "\"'= ")
 
-	// If public endpoint already has a scheme (http:// or https://), use it directly
-	if strings.Contains(s.publicEndpoint, "://") {
-		url = fmt.Sprintf("%s/%s/%s", s.publicEndpoint, s.bucketName, objectKey)
+	var finalURL string
+
+	// If public endpoint already has a scheme, use it
+	if strings.Contains(cleanEndpoint, "://") {
+		finalURL = fmt.Sprintf("%s/%s/%s", cleanEndpoint, s.bucketName, objectKey)
 	} else {
-		// Otherwise fall back to useSSL setting
-		protocol := "http"
-		if s.useSSL {
-			protocol = "https"
-		}
-		url = fmt.Sprintf("%s://%s/%s/%s", protocol, s.publicEndpoint, s.bucketName, objectKey)
+		// FORCE HTTPS as requested by user, ignoring useSSL for public URLs
+		finalURL = fmt.Sprintf("https://%s/%s/%s", cleanEndpoint, s.bucketName, objectKey)
 	}
 
 	log.Debug().
 		Str("object_key", objectKey).
-		Str("public_endpoint", s.publicEndpoint).
-		Str("bucket", s.bucketName).
-		Bool("use_ssl", s.useSSL).
-		Str("generated_url", url).
-		Msg("GetImageURL called")
+		Str("original_endpoint", s.publicEndpoint).
+		Str("clean_endpoint", cleanEndpoint).
+		Str("generated_url", finalURL).
+		Msg("GetImageURL called (Force HTTPS)")
 
-	return url
+	return finalURL
 }
 
 // GetKeyFromURL attempts to extract the object key from a full URL
