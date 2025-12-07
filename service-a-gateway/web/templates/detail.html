@@ -29,7 +29,7 @@
         <div class="relative h-96 bg-gradient-to-br from-gray-200 to-gray-300">
             {{if .Item.ImageURL}}
             <img
-                src="{{.Item.ImageURL}}"
+                src="{{.Item.ImageURL | safeURL}}"
                 alt="{{.Item.Title}}"
                 class="w-full h-full object-contain bg-gray-900"
             />
@@ -412,7 +412,7 @@
 
                 {{if .Item.ImageURL}}
                 <a
-                    href="{{.Item.ImageURL}}"
+                    href="{{.Item.ImageURL | safeURL}}"
                     target="_blank"
                     class="flex-1 min-w-[200px] bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors text-center font-semibold inline-flex items-center justify-center gap-2"
                 >

@@ -116,6 +116,9 @@ func NewHandler(
 			days := int(math.Ceil(remaining.Hours() / 24))
 			return days
 		},
+		"safeURL": func(s string) template.URL {
+			return template.URL(s)
+		},
 	}
 
 	// Parse base template
