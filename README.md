@@ -156,7 +156,7 @@ Polish municipalities are legally obligated to manage found items and publish th
 
 ### 📹 Video Presentation
 
-**YouTube/Vimeo**: `https://youtube.com/watch?v=YOUR_VIDEO_ID` _(Coming soon)_
+**YouTube**: `https://youtu.be/5JFhqebSRmc`
 
 ## 📸 System Screenshots - Complete User Journey
 
