@@ -244,6 +244,12 @@ func setupRouter(h *handlers.Handler, staticPath string) *mux.Router {
 	api.HandleFunc("/analyze-image-form", h.AnalyzeImageFormHandler).Methods("POST")
 	api.HandleFunc("/health", h.HealthCheckHandler).Methods("GET")
 
+	// Dataset API routes
+	api.HandleFunc("/datasets", h.ListDatasetsAPIHandler).Methods("GET")
+	api.HandleFunc("/datasets/{id}", h.GetDatasetAPIHandler).Methods("GET")
+	api.HandleFunc("/datasets/{id}/items", h.GetDatasetWithItemsAPIHandler).Methods("GET")
+	api.HandleFunc("/datasets/{id}/publish", h.PublishDatasetHandler).Methods("POST")
+
 	// Health check at root
 	r.HandleFunc("/health", h.HealthCheckHandler).Methods("GET")
 

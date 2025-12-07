@@ -89,6 +89,45 @@ Dokumentacja struktur JSON dla wszystkich zdarzeń przesyłanych przez RabbitMQ 
 
 ---
 
+## 📤 Event #3: dataset.publish
+
+**Wysyłany przez:** Service A (Gateway)
+**Konsumowany przez:** Service C (Publisher)
+**Routing Key:** `dataset.publish`
+**Queue:** `q.datasets.publish`
+
+### Schema
+
+```json
+{
+  "dataset_id": "550e8400-e29b-41d4-a716-446655440000",
+  "title": "Rejestr rzeczy znalezionych 2025",
+  "notes": "Baza danych zgłoszonych rzeczy znalezionych w 2025 roku",
+  "url": "https://example.com/dataset-url",
+  "institution_name": "Urząd Miasta",
+  "email": "kontakt@urzad.pl",
+  "categories": ["transport", "inne"],
+  "tags": ["rzeczy znalezione", "2025"],
+  "timestamp": "2025-12-06T10:40:00Z"
+}
+```
+
+### Pole Description
+
+| Pole               | Typ      | Wymagane | Opis                                        |
+| ------------------ | -------- | -------- | ------------------------------------------- |
+| `dataset_id`       | UUID     | ✅       | Unikalny identyfikator datasetu             |
+| `title`            | string   | ✅       | Tytuł datasetu                              |
+| `notes`            | string   | ✅       | Opis datasetu                               |
+| `url`              | string   | ✅       | URL do danych datasetu                      |
+| `institution_name` | string   | ✅       | Nazwa instytucji                            |
+| `email`            | string   | ✅       | Email kontaktowy                            |
+| `categories`       | string[] | ✅       | Kategorie datasetu                          |
+| `tags`             | string[] | ✅       | Tagi datasetu                               |
+| `timestamp`        | ISO 8601 | ✅       | Timestamp publikacji zdarzenia              |
+
+---
+
 ## 📤 dane.gov.pl Export Format
 
 **Format do wysłania:** Zstandaryzowany JSON-LD (DCAT-AP PL)

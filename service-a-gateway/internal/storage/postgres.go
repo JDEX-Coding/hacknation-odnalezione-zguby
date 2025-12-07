@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/hacknation/odnalezione-zguby/service-a-gateway/internal/models"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 	"github.com/rs/zerolog/log"
 )
 
@@ -457,11 +457,11 @@ func (s *PostgresStorage) GetItemsByDataset(datasetID string) ([]*models.LostIte
 // Helper functions for PostgreSQL array handling
 func arrayToPostgresArray(arr []string) interface{} {
 	if len(arr) == 0 {
-		return []string{}
+		return pq.Array([]string{})
 	}
-	return arr
+	return pq.Array(arr)
 }
 
 func postgresArrayToSlice(dest *[]string) interface{} {
-	return dest
+	return pq.Array(dest)
 }

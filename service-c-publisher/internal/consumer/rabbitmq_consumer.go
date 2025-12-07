@@ -139,6 +139,81 @@ func (c *RabbitMQConsumer) processMessage(msg amqp.Delivery, handler func(*model
 	return nil
 }
 
+// ConsumeDatasets consumes dataset.publish messages
+func (c *RabbitMQConsumer) ConsumeDatasets(ctx context.Context, handler func(*models.DatasetPublishEvent) error) error {
+	msgs, err := c.channel.Consume(
+		c.queueName,
+		"",    // consumer tag
+		false, // auto-ack
+		false, // exclusive
+		false, // no-local
+		false, // no-wait
+		nil,   // args
+	)
+	if err != nil {
+		return fmt.Errorf("failed to register consumer: %w", err)
+	}
+
+	log.Info().
+		Str("queue", c.queueName).
+		Msg("✅ Dataset consumer registered successfully")
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case msg, ok := <-msgs:
+			if !ok {
+				return fmt.Errorf("channel closed")
+			}
+
+			if err := c.processDatasetMessage(msg, handler); err != nil {
+				log.Error().Err(err).Msg("Error processing dataset message")
+				// Reject and requeue if it's a temporary error
+				if err := msg.Nack(false, true); err != nil {
+					log.Error().Err(err).Msg("Failed to nack message")
+				}
+			} else {
+				// Acknowledge successful processing
+				if err := msg.Ack(false); err != nil {
+					log.Error().Err(err).Msg("Failed to ack message")
+				}
+			}
+		}
+	}
+}
+
+// processDatasetMessage processes a single dataset message
+func (c *RabbitMQConsumer) processDatasetMessage(msg amqp.Delivery, handler func(*models.DatasetPublishEvent) error) error {
+	log.Info().
+		Str("routing_key", msg.RoutingKey).
+		Str("message_id", msg.MessageId).
+		Int("body_size", len(msg.Body)).
+		Msg("📨 Received dataset message")
+
+	var event models.DatasetPublishEvent
+	if err := json.Unmarshal(msg.Body, &event); err != nil {
+		return fmt.Errorf("failed to unmarshal dataset message: %w", err)
+	}
+
+	log.Info().
+		Str("dataset_id", event.DatasetID).
+		Str("title", event.Title).
+		Msg("Processing dataset for publication")
+
+	startTime := time.Now()
+	if err := handler(&event); err != nil {
+		return fmt.Errorf("handler error: %w", err)
+	}
+
+	log.Info().
+		Str("dataset_id", event.DatasetID).
+		Dur("duration_ms", time.Since(startTime)).
+		Msg("✅ Successfully processed and published dataset")
+
+	return nil
+}
+
 // PublishPublishedEvent publishes a success event back to RabbitMQ
 func (c *RabbitMQConsumer) PublishPublishedEvent(ctx context.Context, event *models.ItemPublishedEvent) error {
 	body, err := json.Marshal(event)
@@ -169,6 +244,34 @@ func (c *RabbitMQConsumer) PublishPublishedEvent(ctx context.Context, event *mod
 		Str("item_id", event.ID).
 		Str("dataset_id", event.DatasetID).
 		Msg("📤 Published item.published event")
+
+	return nil
+}
+
+// PublishEvent publishes a generic event to RabbitMQ
+func (c *RabbitMQConsumer) PublishEvent(ctx context.Context, body []byte, routingKey string) error {
+	err := c.channel.PublishWithContext(
+		ctx,
+		c.exchangeName,
+		routingKey,
+		false, // mandatory
+		false, // immediate
+		amqp.Publishing{
+			ContentType:  "application/json",
+			Body:         body,
+			DeliveryMode: amqp.Persistent,
+			Timestamp:    time.Now(),
+		},
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to publish event: %w", err)
+	}
+
+	log.Info().
+		Str("routing_key", routingKey).
+		Int("body_size", len(body)).
+		Msg("📤 Published event")
 
 	return nil
 }

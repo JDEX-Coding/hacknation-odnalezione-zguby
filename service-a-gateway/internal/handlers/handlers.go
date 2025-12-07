@@ -921,7 +921,7 @@ func (h *Handler) CreateDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 	w.WriteHeader(http.StatusOK)
 
-	successHTML := fmt.Sprintf(`
+	successHTML := `
 		<div class="fixed top-4 right-4 bg-green-50 border-l-4 border-green-500 p-4 rounded shadow-lg z-50 max-w-md">
 			<div class="flex items-start">
 				<svg class="w-6 h-6 text-green-500 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -930,20 +930,15 @@ func (h *Handler) CreateDatasetHandler(w http.ResponseWriter, r *http.Request) {
 				<div>
 					<h3 class="text-green-800 font-semibold">Dataset przesłany!</h3>
 					<p class="text-green-700 text-sm mt-1">
-						Dokument jest przetwarzany. Możesz śledzić postęp w panelu datasetu.
+						Dokument jest przetwarzany. Przekierowywanie do przeglądania zgłoszeń...
 					</p>
-					<div class="mt-3">
-						<a href="/datasets/%s" class="text-green-600 hover:text-green-700 text-sm font-medium">
-							Zobacz dataset →
-						</a>
-					</div>
 				</div>
 			</div>
 		</div>
 		<script>
-			setTimeout(() => window.location.href = "/datasets/%s", 2000);
+			setTimeout(() => window.location.href = "/browse", 1500);
 		</script>
-	`, datasetID, datasetID)
+	`
 
 	w.Write([]byte(successHTML))
 }

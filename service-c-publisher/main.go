@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 	"os/signal"
 	"syscall"
@@ -48,33 +49,46 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to login to dane.gov.pl")
 	}
 
-	// Validate dataset ID is provided
+	// Validate dataset ID is provided (only required for item->resource publishing)
 	datasetID := config.DatasetID
 	if datasetID == "" {
-		log.Fatal().Msg("DATASET_ID is required - please set it in .env file")
+		log.Warn().Msg("DATASET_ID not set - item->resource publishing will be disabled, dataset publishing will still work")
+	} else {
+		log.Info().
+			Str("dataset_id", datasetID).
+			Msg("Using dataset for resource publishing")
 	}
 
-	log.Info().
-		Str("dataset_id", datasetID).
-		Msg("Using dataset for resource publishing")
-
-	// Initialize RabbitMQ consumer
-	log.Info().Msg("Initializing RabbitMQ consumer...")
-	rabbitConsumer, err := consumer.NewRabbitMQConsumer(
+	// Initialize RabbitMQ consumer for items
+	log.Info().Msg("Initializing RabbitMQ consumer for items...")
+	itemConsumer, err := consumer.NewRabbitMQConsumer(
 		config.RabbitMQURL,
 		config.RabbitMQExchange,
 		config.RabbitMQQueue,
 		config.RabbitMQRoutingKey,
 	)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to initialize RabbitMQ consumer")
+		log.Fatal().Err(err).Msg("Failed to initialize RabbitMQ consumer for items")
 	}
-	defer rabbitConsumer.Close()
+	defer itemConsumer.Close()
+
+	// Initialize RabbitMQ consumer for datasets
+	log.Info().Msg("Initializing RabbitMQ consumer for datasets...")
+	datasetConsumer, err := consumer.NewRabbitMQConsumer(
+		config.RabbitMQURL,
+		config.RabbitMQExchange,
+		"q.datasets.publish",
+		"dataset.publish",
+	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize RabbitMQ consumer for datasets")
+	}
+	defer datasetConsumer.Close()
 
 	log.Info().Msg("✅ Publisher service initialized successfully")
 
-	// Create message handler
-	messageHandler := func(event *models.ItemVectorizedEvent) error {
+	// Create item message handler
+	itemMessageHandler := func(event *models.ItemVectorizedEvent) error {
 		log.Info().
 			Str("item_id", event.ID).
 			Str("title", event.Title).
@@ -102,9 +116,72 @@ func main() {
 			PublicationDate: time.Now(),
 		}
 
-		if err := rabbitConsumer.PublishPublishedEvent(ctx, publishedEvent); err != nil {
+		if err := itemConsumer.PublishPublishedEvent(ctx, publishedEvent); err != nil {
 			log.Error().Err(err).Msg("Failed to publish success event")
 			// Don't fail - item was already processed
+		}
+
+		return nil
+	}
+
+	// Create dataset message handler
+	datasetMessageHandler := func(event *models.DatasetPublishEvent) error {
+		log.Info().
+			Str("dataset_id", event.DatasetID).
+			Str("title", event.Title).
+			Msg("📦 Processing dataset for publication to dane.gov.pl")
+
+		// Create dataset request
+		datasetReq := models.DatasetRequest{
+			Data: models.DatasetData{
+				Type: "dataset-submission",
+				Attributes: models.DatasetAttributeDetail{
+					Title:           event.Title,
+					Notes:           event.Notes,
+					URL:             event.URL,
+					InstitutionName: event.InstitutionName,
+					Email:           event.Email,
+					Categories:      event.Categories,
+					Tags:            event.Tags,
+				},
+			},
+		}
+
+		// Create dataset on dane.gov.pl
+		response, err := daneGovClient.CreateDataset(ctx, datasetReq)
+		if err != nil {
+			log.Error().
+				Err(err).
+				Str("dataset_id", event.DatasetID).
+				Msg("❌ Failed to create dataset on dane.gov.pl")
+			return err
+		}
+
+		log.Info().
+			Str("dataset_id", event.DatasetID).
+			Str("dane_gov_id", response.Data.ID).
+			Str("title", response.Data.Attributes.Title).
+			Msg("✅ Dataset successfully created on dane.gov.pl")
+
+		// Publish success event
+		publishedEvent := &models.DatasetPublishedEvent{
+			DatasetID:       event.DatasetID,
+			DaneGovID:       response.Data.ID,
+			PublishedAt:     time.Now(),
+			DaneGovURL:      response.Links.Self,
+			PublicationDate: time.Now(),
+		}
+
+		// Publish back to RabbitMQ
+		publishedJSON, err := json.Marshal(publishedEvent)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to marshal published event")
+			return nil // Don't fail the consumer
+		}
+
+		if err := datasetConsumer.PublishEvent(ctx, publishedJSON, "dataset.published"); err != nil {
+			log.Error().Err(err).Msg("Failed to publish dataset.published event")
+			// Don't fail - dataset was already created
 		}
 
 		return nil
@@ -120,17 +197,33 @@ func main() {
 
 	go func() {
 		<-sigChan
-		log.Info().Msg("🛑 Shutdown signal received, stopping consumer...")
+		log.Info().Msg("🛑 Shutdown signal received, stopping consumers...")
 		cancel()
 	}()
 
 	log.Info().Msg("🎧 Listening for messages on RabbitMQ...")
 
-	if err := rabbitConsumer.Consume(consumerCtx, messageHandler); err != nil {
-		if err != context.Canceled {
-			log.Error().Err(err).Msg("Consumer error")
+	// Start both consumers in goroutines
+	go func() {
+		log.Info().Msg("🎧 Item consumer started")
+		if err := itemConsumer.Consume(consumerCtx, itemMessageHandler); err != nil {
+			if err != context.Canceled {
+				log.Error().Err(err).Msg("Item consumer error")
+			}
 		}
-	}
+	}()
+
+	go func() {
+		log.Info().Msg("🎧 Dataset consumer started")
+		if err := datasetConsumer.ConsumeDatasets(consumerCtx, datasetMessageHandler); err != nil {
+			if err != context.Canceled {
+				log.Error().Err(err).Msg("Dataset consumer error")
+			}
+		}
+	}()
+
+	// Wait for shutdown signal
+	<-consumerCtx.Done()
 
 	log.Info().Msg("👋 Publisher service stopped gracefully")
 }
