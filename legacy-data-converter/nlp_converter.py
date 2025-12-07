@@ -178,6 +178,13 @@ class NLPConverter:
                 if value:
                     if target_field in ["found_date", "reporting_date"]:
                         item[target_field] = self._parse_date(str(value))
+                    elif target_field == "title":
+                        # Clean decorative chars and remove dates from title
+                        cleaned = self._clean_decorative_chars(str(value))
+                        item[target_field] = self._remove_dates_from_text(cleaned).strip()
+                    elif target_field == "description":
+                        # Clean decorative chars from description
+                        item[target_field] = self._clean_decorative_chars(str(value)).strip()
                     else:
                         item[target_field] = str(value).strip()
                     break
@@ -268,20 +275,66 @@ class NLPConverter:
         
         return item
     
+    def _clean_decorative_chars(self, text: str) -> str:
+        """Remove decorative characters like '=' and '-' when they appear repeatedly."""
+        # Remove lines that are purely decorative (repeated chars)
+        if re.match(r'^[=\-_*#|]{3,}$', text.strip()):
+            return ""
+        
+        # Remove leading/trailing decorative chars and pipes
+        text = re.sub(r'^[=\-_*#|\s]+', '', text)
+        text = re.sub(r'[=\-_*#|\s]+$', '', text)
+        
+        # Remove leading pipes from structured data
+        text = re.sub(r'^\s*\|\s*', '', text)
+        
+        return text.strip()
+    
+    def _remove_dates_from_text(self, text: str) -> str:
+        """Remove date patterns from text."""
+        # Remove common date formats
+        text = re.sub(r'\b\d{1,2}[\.\/\-]\d{1,2}[\.\/\-]\d{2,4}\b', '', text)
+        text = re.sub(r'\b\d{4}-\d{1,2}-\d{1,2}\b', '', text)
+        text = re.sub(r'\b\d{1,2}\s+(stycznia|lutego|marca|kwietnia|maja|czerwca|lipca|sierpnia|września|października|listopada|grudnia)\s+\d{4}\b', '', text, flags=re.IGNORECASE)
+        
+        # Clean up extra whitespace
+        text = re.sub(r'\s+', ' ', text).strip()
+        return text
+    
     def _extract_title(self, text: str) -> str:
         """Extract title from text."""
         lines = [line.strip() for line in text.split('\n') if line.strip()]
         
         # Take first significant line (longer than 10 chars)
         for line in lines:
-            if len(line) > 10 and not line.startswith('['):
-                return line[:200]  # Limit length
+            # Clean decorative characters
+            cleaned_line = self._clean_decorative_chars(line)
+            
+            if len(cleaned_line) > 10 and not cleaned_line.startswith('['):
+                # Remove dates from title
+                title = self._remove_dates_from_text(cleaned_line)
+                
+                # If title is too short after cleaning, try next line
+                if len(title) < 5:
+                    continue
+                    
+                return title[:200]  # Limit length
         
         return "Nieznany przedmiot"
     
     def _extract_description(self, text: str) -> str:
         """Extract description from text."""
-        # Clean up text
+        # Split into lines and clean each
+        lines = text.split('\n')
+        cleaned_lines = []
+        
+        for line in lines:
+            cleaned = self._clean_decorative_chars(line)
+            if cleaned:  # Only add non-empty lines
+                cleaned_lines.append(cleaned)
+        
+        # Join and clean up text
+        text = ' '.join(cleaned_lines)
         text = re.sub(r'\s+', ' ', text).strip()
         
         # Limit length

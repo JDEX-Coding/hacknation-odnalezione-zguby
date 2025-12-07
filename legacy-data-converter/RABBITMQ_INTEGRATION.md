@@ -6,11 +6,6 @@ The legacy-data-converter service now operates as a **RabbitMQ consumer** instea
 
 ## Architecture Changes
 
-### Previous (REST API):
-```
-User → HTTP POST /convert → Service → Response
-```
-
 ### Current (RabbitMQ Consumer):
 ```
 Gateway → [dataset.submitted] → q.datasets.process → Legacy Converter
