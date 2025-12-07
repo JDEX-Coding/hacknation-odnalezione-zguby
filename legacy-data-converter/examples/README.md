@@ -130,3 +130,93 @@ Free-form text with relevant information. The NLP converter will attempt to extr
 - Location (look for "przy", "na", "w" + address)
 - Date (various formats supported)
 - Contact information (email, phone patterns)
+
+## Challenging Examples
+
+The `messy_*` files contain intentionally difficult, real-world examples:
+
+### `messy_report1.txt`
+- Police patrol report format
+- Informal language mixed with formal
+- Multiple contact formats
+- Date without year (15.01.24)
+- Location described narratively
+
+### `messy_report2.txt`
+- Service note style
+- Very informal language ("!!!", "PS.")
+- Colloquial date format ("dwunastego stycznia br.")
+- Missing structured fields
+- Contact info buried in text
+
+### `messy_report3.txt`
+- Multi-item report (2 items in one document)
+- Complex formatting with ASCII art
+- Uncertain information ("mogą należeć... lub nie???")
+- Recommendations mixed with data
+- Multiple contact methods
+
+### `messy_email.html`
+- HTML email format
+- Embedded styling
+- Bullet points in HTML
+- Yellow highlighting
+- Auto-generated footer
+- Informal communication style
+
+### `messy_spreadsheet.csv`
+- Inconsistent date formats (13-01-2024, 14.01, 15/01/2024, 2024-01-16, etc.)
+- Missing data (empty cells)
+- Messy notes and comments
+- Mixed phone number formats
+- Status notes in description field
+- Variable column usage
+
+### `messy_legacy_export.xml`
+- Old system export format
+- Empty title fields
+- Long narrative descriptions
+- Inconsistent field naming
+- Mixed date formats
+- Status fields in Polish
+- Nested contact information
+
+### `messy_legacy_system.json`
+- Legacy JSON with non-standard structure
+- Variable field names (ref_number formats)
+- Missing reference numbers
+- Extensive notes and comments
+- Multiple item descriptions in single field
+- Priority markers
+- Summary metadata
+
+## Testing Messy Files
+
+Test the converter's ability to handle imperfect data:
+
+```bash
+# Test challenging reports
+python test_publish.py examples/messy_report1.txt messy-test-1
+python test_publish.py examples/messy_report2.txt messy-test-2
+python test_publish.py examples/messy_report3.txt messy-test-3
+
+# Test messy HTML email
+python test_publish.py examples/messy_email.html messy-test-4
+
+# Test inconsistent spreadsheet
+python test_publish.py examples/messy_spreadsheet.csv messy-test-5
+
+# Test legacy exports
+python test_publish.py examples/messy_legacy_export.xml messy-test-6
+python test_publish.py examples/messy_legacy_system.json messy-test-7
+```
+
+These examples test the converter's robustness in handling:
+- ✅ Multiple date formats
+- ✅ Inconsistent field naming
+- ✅ Missing required fields
+- ✅ Informal language
+- ✅ Multi-item documents
+- ✅ HTML formatting
+- ✅ Embedded notes and comments
+- ✅ Mixed data quality

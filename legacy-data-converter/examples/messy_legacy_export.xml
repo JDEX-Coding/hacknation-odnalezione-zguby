@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<RaportZnalezisk>
+    <MetaDane>
+        <System>StaraWersja_2.1</System>
+        <DataEksportu>2024-01-20T15:30:00</DataEksportu>
+        <Jednostka>Urząd Dzielnicy Praga-Północ</Jednostka>
+    </MetaDane>
+    
+    <Znaleziska>
+        <Pozycja ID="PL-2024-0001">
+            <Tytul></Tytul>
+            <OpisWolny>W dniu 15 stycznia br. znaleziono przy ul. Targowej (w pobliżu bazaru) 
+            torbę podróżną w kolorze granatowym. W środku odzież męska (nieużywana, z metkami), 
+            przybory toaletowe oraz książka po rosyjsku. Brak dokumentów pozwalających na 
+            identyfikację właściciela.</OpisWolny>
+            <Kategoria>INNE</Kategoria>
+            <LokalizacjaZnalezienia>ulica Targowa okolice bazaru Różyckiego</LokalizacjaZnalezienia>
+            <DataZnalezienia>15.01.2024</DataZnalezienia>
+            <GdziePrzechowywane>magazyn - regal 3, polka B</GdziePrzechowywane>
+            <StatusSprawy>oczekuje_na_odbiór</StatusSprawy>
+            <KontaktOsoba>M. Lewandowska</KontaktOsoba>
+            <KontaktTelefon>22-590-44-55 w.23</KontaktTelefon>
+        </Pozycja>
+        
+        <Pozycja ID="PL-2024-0002">
+            <Tytul>Rower</Tytul>
+            <OpisWolny>Rower górski marki "KrossBike" kolor zielono-czarny pozostawiony 
+            przykuty łańcuchem do barierki przy przystanku tramwajowym. Nie został odebrany 
+            przez kilka dni pomimo ogłoszeń na tablicy. Prawdopodobnie porzucony. 
+            Rower uszkodzony - brak tylnego koła, siodełko zniszczone.</OpisWolny>
+            <Kategoria>pojazdy</Kategoria>
+            <LokalizacjaZnalezienia>przystanek tramwajowy Szwedzka/Ratuszowa</LokalizacjaZnalezienia>
+            <DataZnalezienia>2024-01-11</DataZnalezienia>
+            <DataZgloszenia>18.01.2024</DataZgloszenia>
+            <GdziePrzechowywane>parking rowerowy miejski - sektor D23</GdziePrzechowywane>
+            <StatusSprawy>do_utylizacji</StatusSprawy>
+            <Uwagi>Rower w bardzo złym stanie technicznym. Zalecana utylizacja po upływie 
+            ustawowego terminu.</Uwagi>
+            <KontaktEmail>strażmiejska.praga@warszawa.pl</KontaktEmail>
+        </Pozycja>
+        
+        <Pozycja ID="PL-2024-0003">
+            <OpisWolny>znaleziono dokumenty: legitymacja studencka Uniwersytet Warszawski 
+            (Wydział Fizyki) na nazwisko MALINOWSKI JAKUB, karta biblioteczna, karta 
+            miejska ZTM ważna do 31.03.2024, wszystko w plastikowej przezroczystej etui</OpisWolny>
+            <LokalizacjaZnalezienia>ławka park przy Muzeum Warszawy (Stare Miasto)</LokalizacjaZnalezienia>
+            <DataZnalezienia>19/01/24 około południa</DataZnalezienia>
+            <KontaktEmail>rzeczy.znalezione@um.warszawa.pl</KontaktEmail>
+            <KontaktTelefon>22 443 55 66</KontaktTelefon>
+            <Znalazca imie="Krystyna" nazwisko="Nowacka">osoba prywatna, przechodząca obok</Znalazca>
+        </Pozycja>
+    </Znaleziska>
+</RaportZnalezisk>

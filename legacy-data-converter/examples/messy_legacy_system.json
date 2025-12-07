@@ -1,0 +1,79 @@
+{
+    "report_metadata": {
+        "generated_by": "LegacySystem_v1.8",
+        "export_timestamp": "2024-01-20T10:15:33Z",
+        "department": "Wydział Spraw Obywatelskich"
+    },
+    "findings": [
+        {
+            "ref_number": "ZZ/2024/00123",
+            "item_description": "Portfel męski (skóra czarna) + dowód osobisty + karty płatnicze (3 szt) + zdjęcia rodzinne",
+            "where_found": "przystanek autobusowy linia 175 róg Puławskiej i Rakowieckiej",
+            "when_found": "14.01.2024 rano (dokładna godzina nieznana)",
+            "current_storage": "Urząd Dzielnicy Mokotów pok.112",
+            "person_who_found": "Pan Andrzej W. (pełne dane w aktach)",
+            "contact_details": {
+                "office_phone": "22-44-33-211",
+                "email_generic": "urzad@mokotow.waw.pl",
+                "available_hours": "pon-pt 8-16"
+            },
+            "notes": "właściciel już informowany telefonicznie - ma się zgłosić z dowodem tożsamości",
+            "priority": "HIGH"
+        },
+        {
+            "ref_number": "ZZ/2024/00124",
+            "item_description": "LAPTOP (stary model, HP Pavilion chyba) + torba na laptopa czarna",
+            "where_found": "kawiarnia na parterze urzędu",
+            "when_found": "16-01-2024, po godz. 15:00",
+            "person_who_found": "kelnerka - Magda",
+            "contact_details": {
+                "email_generic": "kontakt@urzad.waw.pl"
+            },
+            "notes": "Laptop pozostawiony przez klienta. Nie został odebrany tego samego dnia pomimo ogłoszenia przez kelnerki. Bateria rozładowana.",
+            "priority": "MEDIUM",
+            "additional_info": "w torbie znaleziono też: mysz komputerowa, kabel ładowania, notes w kratkę (pusty)"
+        },
+        {
+            "ref_number": "ZZ-2024-125",
+            "item_description": "Zestaw kluczy (ok. 7 sztuk na kółku) + pilot do bramy garażowej + breloczek z napisem 'Zosia'",
+            "where_found": "parking podziemny - wjazd B, poziom -1",
+            "when_found": "17.1.2024",
+            "current_storage": "portiernia główna",
+            "contact_details": {
+                "email_generic": "ochrona@budynek.pl",
+                "office_phone": "505-123-456 (ochrona 24h)"
+            }
+        },
+        {
+            "item_description": "TELEFON Samsung Galaxy niebieski + etui ochronne + słuchawki bezprzewodowe w pudełku",
+            "where_found": "sala konferencyjna D - po szkoleniu BHP",
+            "when_found": "19 stycznia 2024 wieczorem",
+            "current_storage": "recepcja II piętro",
+            "person_who_found": "sprzątaczka (imię nieznane)",
+            "contact_details": {
+                "email_generic": "recepcja@firma.com.pl",
+                "office_phone": "22 567 89 00"
+            },
+            "notes": "telefon był włączony ale zablokowany PIN-em, bateria na 15%, ładujemy na recepcji",
+            "additional_info": "właściciel może się zgłosić na recepcji w godz. 7-19 od poniedziałku do piątku"
+        },
+        {
+            "ref_number": "2024/ZZ/0126",
+            "item_description": "Plecak dziecięcy (różowy z jednorożcem) zawierający: podręczniki szkolne klasa 4, piórnik, butelka na wodę, kanapki",
+            "where_found": "park zabaw przy ul. Sobieskiego",
+            "when_found": "2024-01-20 popołudnie ok 16:00",
+            "person_who_found": "zgłoszenie telefoniczne - mama innego dziecka",
+            "current_storage": "plac zabaw - oddano dozorcy pani Halinie",
+            "contact_details": {
+                "office_phone": "telefon do dozorczyni: 601-222-333"
+            },
+            "notes": "UWAGA: kanapki wyrzucone (były już nieświeże), reszta rzeczy bezpieczna",
+            "priority": "HIGH - dziecko pewnie szuka plecaka!"
+        }
+    ],
+    "summary": {
+        "total_items": 5,
+        "items_claimed": 1,
+        "items_waiting": 4
+    }
+}
