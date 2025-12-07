@@ -850,7 +850,7 @@ func (h *Handler) CreateDatasetHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Create dataset record
 	datasetID := uuid.New().String()
-	
+
 	// Only save dataset to database if checkbox is checked
 	if createSeparateDataset {
 		dataset := &models.Dataset{
