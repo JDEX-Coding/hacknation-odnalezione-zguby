@@ -103,3 +103,46 @@ type ResourceResponse struct {
 		Self string `json:"self"`
 	} `json:"links"`
 }
+
+// DatasetRequest represents the request to create a new dataset
+type DatasetRequest struct {
+	Data DatasetData `json:"data"`
+}
+
+// DatasetData wraps the dataset attributes
+type DatasetData struct {
+	Type       string                 `json:"type"` // "dataset-submission"
+	Attributes DatasetAttributeDetail `json:"attributes"`
+}
+
+// DatasetAttributeDetail contains the dataset metadata
+type DatasetAttributeDetail struct {
+	Title           string   `json:"title"`
+	Notes           string   `json:"notes"`
+	URL             string   `json:"url,omitempty"`
+	InstitutionName string   `json:"institution_name"`
+	Email           string   `json:"email"`
+	Categories      []string `json:"categories,omitempty"`
+	Tags            []string `json:"tags,omitempty"`
+}
+
+// DatasetResponse represents the API response for dataset creation
+type DatasetResponse struct {
+	Data struct {
+		ID         string `json:"id"`
+		Type       string `json:"type"`
+		Attributes struct {
+			Title           string    `json:"title"`
+			Notes           string    `json:"notes"`
+			URL             string    `json:"url"`
+			InstitutionName string    `json:"institution_name"`
+			Email           string    `json:"email"`
+			Categories      []string  `json:"categories"`
+			Tags            []string  `json:"tags"`
+			CreatedAt       time.Time `json:"created_at"`
+		} `json:"attributes"`
+	} `json:"data"`
+	Links struct {
+		Self string `json:"self"`
+	} `json:"links"`
+}
