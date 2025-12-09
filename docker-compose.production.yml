@@ -31,7 +31,8 @@ services:
             - DB_SSL_MODE=disable
         labels:
             - "traefik.enable=true"
-            - "traefik.http.routers.odnalezione-gateway.rule=Host(`${DOMAIN}`)"
+            - "traefik.docker.network=dokploy-network"
+            - "traefik.http.routers.odnalezione-gateway.rule=Host(`visionlink.${DOMAIN}`)"
             - "traefik.http.routers.odnalezione-gateway.entrypoints=websecure"
             - "traefik.http.routers.odnalezione-gateway.tls=true"
             - "traefik.http.routers.odnalezione-gateway.tls.certresolver=letsencrypt"
@@ -177,6 +178,7 @@ services:
             - minio_data:/data
         labels:
             - "traefik.enable=true"
+            - "traefik.docker.network=dokploy-network"
             - "traefik.http.routers.odnalezione-minio-api.rule=Host(`minio.${DOMAIN}`)"
             - "traefik.http.routers.odnalezione-minio-api.entrypoints=websecure"
             - "traefik.http.routers.odnalezione-minio-api.tls=true"
