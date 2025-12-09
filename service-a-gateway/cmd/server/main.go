@@ -108,6 +108,8 @@ func main() {
 		rabbitMQPublisher,
 		visionService,
 		itemStorage,
+		config.ClipServiceURL,
+		config.QdrantServiceURL,
 	)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize handlers")
@@ -176,6 +178,8 @@ type Config struct {
 	DBPassword          string
 	DBName              string
 	DBSSLMode           string
+	ClipServiceURL      string
+	QdrantServiceURL    string
 }
 
 // loadConfig loads configuration from environment variables
@@ -202,6 +206,8 @@ func loadConfig() *Config {
 		DBPassword:          getEnv("DB_PASSWORD", "postgres"),
 		DBName:              getEnv("DB_NAME", "postgres"),
 		DBSSLMode:           getEnv("DB_SSL_MODE", "disable"),
+		ClipServiceURL:      getEnv("CLIP_SERVICE_URL", "http://clip-service:8000"),
+		QdrantServiceURL:    getEnv("QDRANT_SERVICE_URL", "http://qdrant-service:8081"),
 	}
 }
 

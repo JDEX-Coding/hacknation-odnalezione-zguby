@@ -23,11 +23,13 @@ import (
 
 // Handler contains all HTTP handlers
 type Handler struct {
-	templates     map[string]*template.Template // Map of page name -> template set
-	storage       *storage.MinIOStorage
-	rabbitMQ      *services.RabbitMQPublisher
-	visionService *services.VisionService
-	items         *storage.PostgresStorage // Persistent Postgres storage
+	templates        map[string]*template.Template // Map of page name -> template set
+	storage          *storage.MinIOStorage
+	rabbitMQ         *services.RabbitMQPublisher
+	visionService    *services.VisionService
+	items            *storage.PostgresStorage // Persistent Postgres storage
+	clipServiceURL   string
+	qdrantServiceURL string
 }
 
 // NewHandler creates a new handler instance
@@ -37,6 +39,8 @@ func NewHandler(
 	rabbitMQ *services.RabbitMQPublisher,
 	visionService *services.VisionService,
 	itemStorage *storage.PostgresStorage,
+	clipServiceURL string,
+	qdrantServiceURL string,
 ) (*Handler, error) {
 	// Function map for templates
 	funcMap := template.FuncMap{
@@ -150,11 +154,13 @@ func NewHandler(
 	}
 
 	return &Handler{
-		templates:     templates,
-		storage:       storage,
-		rabbitMQ:      rabbitMQ,
-		visionService: visionService,
-		items:         itemStorage,
+		templates:        templates,
+		storage:          storage,
+		rabbitMQ:         rabbitMQ,
+		visionService:    visionService,
+		items:            itemStorage,
+		clipServiceURL:   clipServiceURL,
+		qdrantServiceURL: qdrantServiceURL,
 	}, nil
 }
 
@@ -666,9 +672,8 @@ func (h *Handler) SemanticSearchHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// 1. Get Embedding from Clip Service
-	// Assuming Clip Service is at http://clip-service:8000
 	clipResp, err := http.Post(
-		"http://clip-service:8000/embed",
+		fmt.Sprintf("%s/embed", h.clipServiceURL),
 		"application/json",
 		strings.NewReader(fmt.Sprintf(`{"text": "%s"}`, query)),
 	)
@@ -700,7 +705,7 @@ func (h *Handler) SemanticSearchHandler(w http.ResponseWriter, r *http.Request) 
 	})
 
 	qdrantResp, err := http.Post(
-		"http://qdrant-service:8081/search",
+		fmt.Sprintf("%s/search", h.qdrantServiceURL),
 		"application/json",
 		bytes.NewReader(qdrantReqBody),
 	)
