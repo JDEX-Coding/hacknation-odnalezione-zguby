@@ -148,32 +148,57 @@ func (s *MinIOStorage) DeleteImage(ctx context.Context, imageURL string) error {
 
 // GetImageURL returns the public URL for an image
 func (s *MinIOStorage) GetImageURL(objectKey string) string {
-	// Clean endpoint again just to be safe (runtime sanitization)
-	cleanEndpoint := strings.Trim(s.publicEndpoint, "\"'= ")
+	// For production with Traefik, we need to use presigned URLs
+	// Because direct path-style access (https://minio.domain/bucket/object) doesn't work
+	// through Traefik reverse proxy without additional configuration
+	
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	var finalURL string
-
-	// If public endpoint already has a scheme (http:// or https://), use it directly
-	if strings.Contains(cleanEndpoint, "://") {
-		finalURL = fmt.Sprintf("%s/%s/%s", cleanEndpoint, s.bucketName, objectKey)
-	} else {
-		// Use the useSSL setting to determine protocol
-		protocol := "http"
-		if s.useSSL {
-			protocol = "https"
+	// Generate a presigned URL that works through the public endpoint
+	// Set expiry to 7 days (can be adjusted as needed)
+	presignedURL, err := s.client.PresignedGetObject(ctx, s.bucketName, objectKey, 7*24*time.Hour, url.Values{})
+	if err != nil {
+		log.Error().Err(err).
+			Str("object_key", objectKey).
+			Str("bucket", s.bucketName).
+			Msg("Failed to generate presigned URL, falling back to direct URL")
+		
+		// Fallback to direct URL (old behavior)
+		cleanEndpoint := strings.Trim(s.publicEndpoint, "\"'= ")
+		var finalURL string
+		if strings.Contains(cleanEndpoint, "://") {
+			finalURL = fmt.Sprintf("%s/%s/%s", cleanEndpoint, s.bucketName, objectKey)
+		} else {
+			protocol := "http"
+			if s.useSSL {
+				protocol = "https"
+			}
+			finalURL = fmt.Sprintf("%s://%s/%s/%s", protocol, cleanEndpoint, s.bucketName, objectKey)
 		}
-		finalURL = fmt.Sprintf("%s://%s/%s/%s", protocol, cleanEndpoint, s.bucketName, objectKey)
+		return finalURL
 	}
+
+	// Replace the internal endpoint with the public endpoint in the presigned URL
+	presignedURLStr := presignedURL.String()
+	
+	// The presigned URL will have the internal endpoint (minio:9000)
+	// We need to replace it with the public endpoint
+	internalEndpoint := s.endpoint
+	cleanPublicEndpoint := strings.Trim(s.publicEndpoint, "\"'= ")
+	
+	// Replace the scheme and host part
+	presignedURLStr = strings.Replace(presignedURLStr, fmt.Sprintf("http://%s", internalEndpoint), cleanPublicEndpoint, 1)
+	presignedURLStr = strings.Replace(presignedURLStr, fmt.Sprintf("https://%s", internalEndpoint), cleanPublicEndpoint, 1)
 
 	log.Debug().
 		Str("object_key", objectKey).
-		Str("original_endpoint", s.publicEndpoint).
-		Str("clean_endpoint", cleanEndpoint).
-		Bool("use_ssl", s.useSSL).
-		Str("generated_url", finalURL).
-		Msg("GetImageURL called")
+		Str("internal_endpoint", internalEndpoint).
+		Str("public_endpoint", cleanPublicEndpoint).
+		Str("presigned_url", presignedURLStr).
+		Msg("Generated presigned URL")
 
-	return finalURL
+	return presignedURLStr
 }
 
 // GetKeyFromURL attempts to extract the object key from a full URL
